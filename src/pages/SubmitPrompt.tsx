@@ -108,6 +108,7 @@ const Node = ({ title, color, children, className = "", id, position, onDrag }: 
 
     return (
         <div
+            id={id}
             className={`absolute rounded-xl overflow-visible border border-white/5 ${className} transition-[border-color,box-shadow] duration-300 hover:border-white/10 bg-zinc-900/40 backdrop-blur-md shadow-2xl z-10 w-64 lg:w-72`}
             style={{
                 left: position.x,
@@ -160,7 +161,17 @@ export function SubmitPromptPage() {
     const [wireVersion, setWireVersion] = useState(0)
 
     const handleNodeDrag = (id: string, pos: { x: number, y: number }) => {
-        setNodePositions(prev => ({ ...prev, [id]: pos }))
+        const canvas = document.getElementById("node-canvas")
+        const nodeEl = document.getElementById(id)
+        if (!canvas || !nodeEl) return
+
+        const canvasRect = canvas.getBoundingClientRect()
+        const nodeRect = nodeEl.getBoundingClientRect()
+
+        const clampedX = Math.max(0, Math.min(pos.x, canvasRect.width - nodeRect.width))
+        const clampedY = Math.max(0, Math.min(pos.y, canvasRect.height - nodeRect.height))
+
+        setNodePositions(prev => ({ ...prev, [id]: { x: clampedX, y: clampedY } }))
         setWireVersion(v => v + 1)
     }
 
@@ -228,7 +239,7 @@ export function SubmitPromptPage() {
                 Submit Workflow
             </h1>
 
-            <div id="node-canvas" className="relative max-w-6xl mx-auto min-h-[800px]">
+            <div id="node-canvas" className="relative w-full mx-auto min-h-[1000px] border border-white/[0.03] rounded-3xl bg-white/[0.01]">
                 {/* SVG Wires Layer */}
                 <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
                     <Wire from="checkpoint-out-1" to="prompt-in-1" color="#a855f7" version={wireVersion} />
