@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Sparkles, Loader2, Upload, HelpCircle } from "lucide-react"
+import { Sparkles, Loader2, Upload, HelpCircle, ImagePlus, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { createPrompt, logUserActivity } from "@/lib/db"
@@ -159,6 +159,61 @@ export function SubmitPromptPage() {
         save: { x: 760, y: 150 }
     })
     const [wireVersion, setWireVersion] = useState(0)
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Basic validation
+        if (!file.type.startsWith('image/')) {
+            toast.error("Please select an image file")
+            return
+        }
+
+        setUploading(true)
+        const toastId = toast.loading("Uploading image to Cloudinary...")
+
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('upload_preset', 'ml_default') // Default unsigned preset
+            formData.append('folder', 'prompts')
+
+            const response = await fetch(
+                `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'drksnjhgi'}/image/upload`,
+                {
+                    method: 'POST',
+                    body: formData,
+                }
+            )
+
+            const data = await response.json()
+
+            if (data.secure_url) {
+                setFormData(prev => ({ ...prev, image: data.secure_url }))
+                toast.update(toastId, {
+                    render: "Image uploaded successfully!",
+                    type: "success",
+                    isLoading: false,
+                    autoClose: 3000
+                })
+            } else {
+                throw new Error(data.error?.message || "Upload failed")
+            }
+        } catch (error) {
+            console.error("Cloudinary upload error:", error)
+            toast.update(toastId, {
+                render: "Failed to upload image. Please check your connection.",
+                type: "error",
+                isLoading: false,
+                autoClose: 3000
+            })
+        } finally {
+            setUploading(false)
+        }
+    }
 
     const handleNodeDrag = (id: string, pos: { x: number, y: number }) => {
         const canvas = document.getElementById("node-canvas")
@@ -187,10 +242,7 @@ export function SubmitPromptPage() {
         setIsSubmitting(true)
         try {
             const newPromptId = await createPrompt({
-                ...formData,
-                author: user.name,
-                authorUsername: (user as any).username || (user.email?.split('@')[0]) || "anonymous",
-                authorAvatar: user.avatar || ""
+                ...formData
             } as any, user)
 
             navigate(`/prompt/${newPromptId}`)
@@ -380,23 +432,42 @@ export function SubmitPromptPage() {
                                 <div id="save-in-3" className="w-3 h-3 rounded-full bg-blue-500/40 border-2 border-blue-500" style={{ boxShadow: "0 0 8px #3b82f680" }} />
                             </div>
                             <div className="space-y-3">
-                                <div className="aspect-video bg-black/40 rounded border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden hover:border-teal-500/50 transition-colors group">
-                                    {formData.image ? (
-                                        <img src={formData.image} className="w-full h-full object-cover" alt="Preview" />
+                                <div
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="aspect-video bg-black/40 rounded border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden hover:border-teal-500/50 transition-colors group cursor-pointer relative"
+                                >
+                                    {uploading ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Loader2 className="h-8 w-8 text-teal-500 animate-spin" />
+                                            <span className="text-[10px] text-zinc-400">Uploading...</span>
+                                        </div>
+                                    ) : formData.image ? (
+                                        <>
+                                            <img src={formData.image} className="w-full h-full object-cover" alt="Preview" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                <ImagePlus className="h-6 w-6 text-white" />
+                                            </div>
+                                            <div className="absolute top-2 right-2 bg-teal-500 rounded-full p-1">
+                                                <CheckCircle2 className="h-3 w-3 text-white" />
+                                            </div>
+                                        </>
                                     ) : (
                                         <div className="text-center p-4">
-                                            <Upload className="h-6 w-6 mx-auto mb-1 text-zinc-600 group-hover:text-teal-500/50 transition-colors" />
-                                            <span className="text-[10px] text-zinc-600 group-hover:text-teal-500/50 transition-colors">Preview</span>
+                                            <ImagePlus className="h-6 w-6 mx-auto mb-1 text-zinc-600 group-hover:text-teal-500 transition-colors" />
+                                            <span className="text-[10px] text-zinc-600 group-hover:text-teal-500 transition-colors">Click to upload</span>
                                         </div>
                                     )}
                                 </div>
+
                                 <input
-                                    type="url"
-                                    placeholder="Image URL..."
-                                    value={formData.image}
-                                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs outline-none focus:border-white/20 transition-colors"
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleUpload}
+                                    disabled={uploading}
                                 />
+
                                 <input
                                     type="text"
                                     placeholder="Title..."

@@ -6,6 +6,12 @@ export interface Prompt {
     author: string
     authorUsername: string
     authorAvatar?: string
+    authorDetails?: {
+        id: string
+        name: string
+        username: string
+        avatar?: string
+    }
     prompt?: string
     negativePrompt?: string
     steps?: number

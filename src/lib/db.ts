@@ -178,12 +178,24 @@ export async function createUserDocument(user: any) {
 
 export async function createPrompt(promptData: Omit<Prompt, "id" | "createdAt" | "likes" | "views" | "downloads" | "comments">, user: any): Promise<string> {
     try {
+        // Extract correct user properties based on search results
+        const authorId = user.uid || user.id;
+        const authorName = user.displayName || user.name || "Anonymous";
+        const authorAvatar = user.photoURL || user.avatar || "";
+        const authorUsername = user.username || authorName.toLowerCase().replace(/\s+/g, '_') || "anonymous";
+
         const docRef = await addDoc(collection(db, PROMPTS_COLLECTION), {
             ...promptData,
-            authorId: user.uid,
-            author: user.displayName || "Anonymous",
-            authorUsername: user.username || "anonymous",
-            authorAvatar: user.photoURL || "",
+            authorId: authorId,
+            author: authorName,
+            authorUsername: authorUsername,
+            authorAvatar: authorAvatar,
+            authorDetails: {
+                id: authorId,
+                name: authorName,
+                username: authorUsername,
+                avatar: authorAvatar
+            },
             createdAt: serverTimestamp(),
             likes: 0,
             views: 0,

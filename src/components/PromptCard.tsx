@@ -70,8 +70,17 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
                         )}
 
                         {/* Right Action: Author */}
-                        <div className="flex flex-col items-end">
-                            <span className="text-[10px] text-white/60 font-medium mb-0.5">by {prompt.authorUsername || "Unknown"}</span>
+                        <div className="flex items-center gap-2">
+                            {(prompt.authorDetails?.avatar || prompt.authorAvatar) && (
+                                <img
+                                    src={prompt.authorDetails?.avatar || prompt.authorAvatar}
+                                    alt={prompt.authorUsername}
+                                    className="w-6 h-6 rounded-full border border-white/20 object-cover"
+                                />
+                            )}
+                            <div className="flex flex-col items-end">
+                                <span className="text-[10px] text-white/60 font-medium mb-0.5">by {prompt.authorDetails?.username || prompt.authorUsername || "Unknown"}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

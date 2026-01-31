@@ -74,12 +74,16 @@ export function PromptDetailPage() {
 
                         <div className="flex justify-between items-center p-4 glass rounded-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
-                                    <User className="h-5 w-5" />
+                                <div className="h-10 w-10 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center font-bold text-primary">
+                                    {(prompt.authorDetails?.avatar || prompt.authorAvatar) ? (
+                                        <img src={prompt.authorDetails?.avatar || prompt.authorAvatar} className="w-full h-full object-cover" alt={prompt.authorUsername} />
+                                    ) : (
+                                        <User className="h-5 w-5" />
+                                    )}
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground">Created by</p>
-                                    <p className="font-semibold">@{prompt.authorUsername}</p>
+                                    <p className="font-semibold">@{prompt.authorDetails?.username || prompt.authorUsername}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 px-4 py-2 bg-background/50 rounded-full border border-white/5">
