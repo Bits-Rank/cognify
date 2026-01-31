@@ -1,0 +1,334 @@
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { useDispatch } from "react-redux"
+import { setUser as setReduxUser, clearUser as clearReduxUser, setLoading as setReduxLoading } from "../redux/features/authSlice"
+import {
+    onAuthStateChanged,
+    signInWithPopup,
+    GoogleAuthProvider,
+    signOut as firebaseSignOut,
+    type User as FirebaseUser
+} from "firebase/auth"
+import { doc, setDoc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore"
+import { auth, db } from "./firebase"
+import type { SubscriptionTier } from "./subscription"
+import * as OTPAuth from "otpauth"
+import { logUserActivity } from "./db"
+
+export interface User {
+    id: string
+    email: string
+    name: string
+    avatar?: string
+    subscription: SubscriptionTier
+    promptsUnlocked: string[]
+    generationsUsed: number
+    generationsReset: string
+    createdAt: string
+    // Profile fields
+    slogan?: string
+    location?: string
+    socials?: {
+        website?: string
+        ui8?: string
+        dribbble?: string
+        behance?: string
+        instagram?: string
+        threads?: string
+        facebook?: string
+        linkedin?: string
+    }
+    isTwoFactorEnabled: boolean
+    twoFactorSecret?: string
+}
+
+interface AuthContextType {
+    user: User | null
+    firebaseUser: FirebaseUser | null
+    isLoading: boolean
+    pendingTwoFactorAuth: boolean
+    signInWithGoogle: () => Promise<void>
+    signOut: () => Promise<void>
+    verifyTwoFactorCode: (code: string) => Promise<boolean>
+    cancelTwoFactorAuth: () => void
+    updateSubscription: (tier: SubscriptionTier) => Promise<void>
+    unlockPrompt: (promptId: string) => Promise<void>
+    hasUnlockedPrompt: (promptId: string) => boolean
+    canAccessPremium: () => boolean
+    useGeneration: () => Promise<boolean>
+    generationsRemaining: () => number
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+    const [user, setUser] = useState<User | null>(null)
+    const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [pendingTwoFactorAuth, setPendingTwoFactorAuth] = useState(false)
+    const [pendingUserData, setPendingUserData] = useState<{ user: User, firebaseUser: FirebaseUser } | null>(null)
+    const dispatch = useDispatch()
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+            if (authUser) {
+                // Fetch/create Firestore doc to check 2FA status
+                const userRef = doc(db, "users", authUser.uid)
+
+                try {
+                    // Add a small delay to ensure Firebase is ready
+                    await new Promise(resolve => setTimeout(resolve, 500))
+
+                    const docSnap = await getDoc(userRef)
+
+                    if (docSnap.exists()) {
+                        const data = docSnap.data()
+                        const fetchedUser: User = {
+                            id: authUser.uid,
+                            email: authUser.email || "",
+                            name: data.name || authUser.displayName || "User",
+                            avatar: authUser.photoURL || undefined,
+                            subscription: data.subscription || "free",
+                            promptsUnlocked: data.promptsUnlocked || [],
+                            generationsUsed: data.generationsUsed || 0,
+                            generationsReset: data.generationsReset || new Date().toISOString(),
+                            createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+                            slogan: data.slogan || "",
+                            location: data.location || "",
+                            socials: data.socials || {},
+                            isTwoFactorEnabled: data.isTwoFactorEnabled || false,
+                            twoFactorSecret: data.twoFactorSecret || ""
+                        }
+
+                        // Check if 2FA is enabled
+                        if (fetchedUser.isTwoFactorEnabled && fetchedUser.twoFactorSecret) {
+                            // Hold user in pending state until 2FA is verified
+                            setPendingUserData({ user: fetchedUser, firebaseUser: authUser })
+                            setPendingTwoFactorAuth(true)
+                            setFirebaseUser(authUser)
+                            setIsLoading(false)
+                        } else {
+                            // No 2FA, proceed normally
+                            setFirebaseUser(authUser)
+                            setUser(fetchedUser)
+                            dispatch(setReduxUser(fetchedUser))
+                            setIsLoading(false)
+
+                            // Log login activity if not checking 2FA
+                            logUserActivity(authUser.uid, "login", "Logged in via Google")
+                        }
+                    } else {
+                        // Create user doc if it doesn't exist (first google login)
+                        const username = authUser.displayName
+                            ? authUser.displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+                            : authUser.email?.split('@')[0] || `user_${authUser.uid.slice(0, 8)}`
+
+                        const newUserData = {
+                            email: authUser.email || "",
+                            name: authUser.displayName || "",
+                            username: username,
+                            subscription: "free" as SubscriptionTier,
+                            promptsUnlocked: [],
+                            generationsUsed: 0,
+                            generationsReset: new Date().toISOString(),
+                            createdAt: serverTimestamp(),
+                            slogan: "",
+                            location: "",
+                            socials: {},
+                            isTwoFactorEnabled: false
+                        }
+                        await setDoc(userRef, newUserData)
+                        console.log("✅ User document created successfully")
+
+                        // New user, no 2FA, proceed normally
+                        const newUser: User = {
+                            id: authUser.uid,
+                            email: authUser.email || "",
+                            name: authUser.displayName || "User",
+                            avatar: authUser.photoURL || undefined,
+                            subscription: "free",
+                            promptsUnlocked: [],
+                            generationsUsed: 0,
+                            generationsReset: new Date().toISOString(),
+                            createdAt: new Date().toISOString(),
+                            slogan: "",
+                            location: "",
+                            socials: {},
+                            isTwoFactorEnabled: false
+                        }
+                        setFirebaseUser(authUser)
+                        setUser(newUser)
+                        dispatch(setReduxUser(newUser))
+                        setIsLoading(false)
+                    }
+                } catch (error) {
+                    console.error("Error fetching/creating user doc:", error)
+                    // On error, allow basic auth without 2FA check
+                    const tempUser: User = {
+                        id: authUser.uid,
+                        email: authUser.email || "",
+                        name: authUser.displayName || "User",
+                        avatar: authUser.photoURL || undefined,
+                        subscription: "free",
+                        promptsUnlocked: [],
+                        generationsUsed: 0,
+                        generationsReset: new Date().toISOString(),
+                        createdAt: new Date().toISOString(),
+                        slogan: "",
+                        location: "",
+                        socials: {},
+                        isTwoFactorEnabled: false
+                    }
+                    setFirebaseUser(authUser)
+                    setUser(tempUser)
+                    dispatch(setReduxUser(tempUser))
+                    setIsLoading(false)
+                }
+            } else {
+                setUser(null)
+                setFirebaseUser(null)
+                setPendingTwoFactorAuth(false)
+                setPendingUserData(null)
+                dispatch(clearReduxUser())
+                setIsLoading(false)
+            }
+        })
+
+        return () => unsubscribe()
+    }, [])
+
+    const signInWithGoogle = async () => {
+        const provider = new GoogleAuthProvider()
+        await signInWithPopup(auth, provider)
+    }
+
+    const signOut = async () => {
+        setPendingTwoFactorAuth(false)
+        setPendingUserData(null)
+        await firebaseSignOut(auth)
+    }
+
+    const verifyTwoFactorCode = async (code: string): Promise<boolean> => {
+        if (!pendingUserData) return false
+
+        const { user: pendingUser, firebaseUser: pendingFirebaseUser } = pendingUserData
+        const secret = pendingUser.twoFactorSecret
+
+        if (!secret) return false
+
+        try {
+            // Create a TOTP instance with the stored secret
+            const totp = new OTPAuth.TOTP({
+                issuer: "Cognify",
+                label: pendingUser.email,
+                algorithm: "SHA1",
+                digits: 6,
+                period: 30,
+                secret: OTPAuth.Secret.fromBase32(secret)
+            })
+
+            // Verify the code (with a window of 1 to account for timing drift)
+            const delta = totp.validate({ token: code, window: 1 })
+            const isValid = delta !== null
+
+            if (isValid) {
+                // Code is valid, complete the login
+                setUser(pendingUser)
+                dispatch(setReduxUser(pendingUser))
+                setPendingTwoFactorAuth(false)
+                setPendingUserData(null)
+
+                // Log 2FA login activity
+                logUserActivity(pendingUser.id, "login", "Logged in with 2FA verification")
+
+                return true
+            } else {
+                return false
+            }
+        } catch (error) {
+            console.error("Error verifying 2FA code:", error)
+            return false
+        }
+    }
+
+    const cancelTwoFactorAuth = () => {
+        // User cancelled 2FA verification, sign them out
+        setPendingTwoFactorAuth(false)
+        setPendingUserData(null)
+        firebaseSignOut(auth)
+    }
+
+    const updateSubscription = async (tier: SubscriptionTier) => {
+        if (!firebaseUser) return
+        await updateDoc(doc(db, "users", firebaseUser.uid), {
+            subscription: tier
+        })
+    }
+
+    const unlockPrompt = async (promptId: string) => {
+        if (!firebaseUser || !user) return
+        const newUnlocked = [...user.promptsUnlocked, promptId]
+        await updateDoc(doc(db, "users", firebaseUser.uid), {
+            promptsUnlocked: newUnlocked
+        })
+        setUser({ ...user, promptsUnlocked: newUnlocked })
+    }
+
+    const hasUnlockedPrompt = (promptId: string) => {
+        return user?.promptsUnlocked.includes(promptId) || false
+    }
+
+    const canAccessPremium = () => {
+        return user?.subscription === "pro" || user?.subscription === "creator"
+    }
+
+    const useGeneration = async () => {
+        if (!user || !firebaseUser) return false
+
+        const limit = user.subscription === "free" ? 10 : user.subscription === "pro" ? 100 : Infinity
+        if (user.generationsUsed >= limit) return false
+
+        const newCount = user.generationsUsed + 1
+        await updateDoc(doc(db, "users", firebaseUser.uid), {
+            generationsUsed: newCount
+        })
+        setUser({ ...user, generationsUsed: newCount })
+        return true
+    }
+
+    const generationsRemaining = () => {
+        if (!user) return 0
+        const limit = user.subscription === "free" ? 10 : user.subscription === "pro" ? 100 : Infinity
+        return Math.max(0, limit - user.generationsUsed)
+    }
+
+    return (
+        <AuthContext.Provider
+            value={{
+                user,
+                firebaseUser,
+                isLoading,
+                pendingTwoFactorAuth,
+                signInWithGoogle,
+                signOut,
+                verifyTwoFactorCode,
+                cancelTwoFactorAuth,
+                updateSubscription,
+                unlockPrompt,
+                hasUnlockedPrompt,
+                canAccessPremium,
+                useGeneration,
+                generationsRemaining,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    )
+}
+
+export function useAuth() {
+    const context = useContext(AuthContext)
+    if (context === undefined) {
+        throw new Error("useAuth must be used within an AuthProvider")
+    }
+    return context
+}
