@@ -6,6 +6,13 @@ import { useAuth } from "@/lib/auth-context"
 import { createPrompt, logUserActivity } from "@/lib/db"
 import { categories, aiModels } from "@/lib/data"
 import { toast } from "react-toastify"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import type { Category, AIModel } from "@/lib/data"
 
 // Wire connection component
@@ -318,23 +325,39 @@ export function SubmitPromptPage() {
                             </div>
                             <div>
                                 <FieldLabel label="ckpt_name" tooltip="The AI model/checkpoint used to generate the image." />
-                                <select
+                                <Select
                                     value={formData.model}
-                                    onChange={(e) => setFormData({ ...formData, model: e.target.value as AIModel })}
-                                    className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs outline-none focus:border-white/20 transition-colors"
+                                    onValueChange={(value) => setFormData({ ...formData, model: value as AIModel })}
                                 >
-                                    {aiModels.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                                </select>
+                                    <SelectTrigger className="w-full bg-white/5 border-white/10 rounded h-9 text-xs">
+                                        <SelectValue placeholder="Select model" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-zinc-900 border-white/10 text-zinc-200">
+                                        {aiModels.map(m => (
+                                            <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-white/10 focus:text-white">
+                                                {m.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div>
                                 <FieldLabel label="category" tooltip="The category helps users discover your prompt." />
-                                <select
+                                <Select
                                     value={formData.category}
-                                    onChange={(e) => setFormData({ ...formData, category: e.target.value as Category })}
-                                    className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs outline-none focus:border-white/20 transition-colors"
+                                    onValueChange={(value) => setFormData({ ...formData, category: value as Category })}
                                 >
-                                    {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                                </select>
+                                    <SelectTrigger className="w-full bg-white/5 border-white/10 rounded h-9 text-xs">
+                                        <SelectValue placeholder="Select category" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-zinc-900 border-white/10 text-zinc-200">
+                                        {categories.map(c => (
+                                            <SelectItem key={c.value} value={c.value} className="text-xs focus:bg-white/10 focus:text-white">
+                                                {c.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                     </Node>

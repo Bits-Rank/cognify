@@ -112,6 +112,21 @@ export type AIModel =
     | "leonardo"
     | "ideogram"
     | "firefly"
+    | "claude-3-5"
+    | "gpt-4o"
+    | "sdxl"
+    | "sd-3"
+    | "playground"
+    | "krea"
+    | "magnific"
+    | "sana"
+    | "gemini-1-5-pro"
+    | "gemini-1-5-flash"
+    | "grok-1"
+    | "grok-2"
+    | "gpt-4-turbo"
+    | "gpt-3-5-turbo"
+    | "o1-preview"
     | "other"
 
 export const categories: { value: Category; label: string }[] = [
@@ -135,5 +150,20 @@ export const aiModels: { value: AIModel; label: string }[] = [
     { value: "leonardo", label: "Leonardo AI" },
     { value: "ideogram", label: "Ideogram" },
     { value: "firefly", label: "Adobe Firefly" },
+    { value: "claude-3-5", label: "Claude 3.5 Sonnet" },
+    { value: "gpt-4o", label: "GPT-4o (DALL·E 3)" },
+    { value: "sdxl", label: "Stable Diffusion XL" },
+    { value: "sd-3", label: "Stable Diffusion 3" },
+    { value: "playground", label: "Playground AI" },
+    { value: "krea", label: "Krea AI" },
+    { value: "magnific", label: "Magnific AI" },
+    { value: "sana", label: "Sana" },
+    { value: "gemini-1-5-pro", label: "Gemini 1.5 Pro" },
+    { value: "gemini-1-5-flash", label: "Gemini 1.5 Flash" },
+    { value: "grok-1", label: "Grok-1" },
+    { value: "grok-2", label: "Grok-2" },
+    { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+    { value: "gpt-3-5-turbo", label: "GPT-3.5 Turbo" },
+    { value: "o1-preview", label: "OpenAI o1-preview" },
     { value: "other", label: "Other" },
 ]

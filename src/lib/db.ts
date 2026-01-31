@@ -10,8 +10,10 @@ import {
     orderBy,
     limit,
     setDoc,
-    addDoc,
-    updateDoc
+    updateDoc,
+    collectionGroup,
+    documentId,
+    arrayUnion
 } from "firebase/firestore"
 import type { Prompt, User } from "./data"
 
@@ -32,20 +34,27 @@ export async function getPrompts(limitCount = 20): Promise<Prompt[]> {
             console.log("💡 Sign in at /sign-in to view prompts")
         }
 
-        const q = query(
-            collection(db, PROMPTS_COLLECTION),
-            orderBy("createdAt", "desc"),
-            limit(limitCount)
-        )
-        const querySnapshot = await getDocs(q)
-        return querySnapshot.docs.map(doc => {
+        const querySnapshot = await getDocs(collection(db, PROMPTS_COLLECTION))
+        const allPrompts: Prompt[] = []
+
+        querySnapshot.forEach(doc => {
             const data = doc.data()
-            return {
-                id: doc.id,
-                ...data,
-                createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || new Date().toISOString()
+            const { prompts, ...userInfo } = data
+            if (prompts && Array.isArray(prompts)) {
+                const normalizedPrompts = prompts.map((p: any) => ({
+                    ...p,
+                    ...userInfo // Merge root user info into each prompt
+                }))
+                allPrompts.push(...normalizedPrompts)
             }
-        }) as unknown as Prompt[]
+        })
+
+        // Sort by createdAt descending
+        return allPrompts.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime()
+            const dateB = new Date(b.createdAt).getTime()
+            return dateB - dateA
+        }).slice(0, limitCount)
     } catch (error) {
         console.error("Error fetching prompts:", error)
 
@@ -53,29 +62,30 @@ export async function getPrompts(limitCount = 20): Promise<Prompt[]> {
         const err = error as any;
         if (err.code === 'permission-denied') {
             console.log("🔒 Permission denied - Firestore security rules require authentication")
-            console.log("💡 To fix this:")
-            console.log("   1. Sign in at /sign-in")
-            console.log("   2. Or update Firestore rules to allow public read access")
-
             return []
         }
 
-        // For other errors, also return empty array to prevent app crash
+        if (err.message?.includes('index')) {
+            console.error("❌ MISSING INDEX: The query requires a Firestore Collection Group Index.")
+            console.error("👉 Check the link in the error above to create it!")
+        }
+
         return []
     }
 }
 
 export async function getPromptById(id: string): Promise<Prompt | undefined> {
     try {
-        const docRef = doc(db, PROMPTS_COLLECTION, id)
-        const docSnap = await getDoc(docRef)
-        if (docSnap.exists()) {
-            const data = docSnap.data()
-            return {
-                id: docSnap.id,
-                ...data,
-                createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || new Date().toISOString()
-            } as unknown as Prompt
+        const querySnapshot = await getDocs(collection(db, PROMPTS_COLLECTION))
+        for (const doc of querySnapshot.docs) {
+            const data = doc.data()
+            const { prompts, ...userInfo } = data
+            if (prompts && Array.isArray(prompts)) {
+                const found = prompts.find((p: any) => p.id === id)
+                if (found) {
+                    return { ...found, ...userInfo } as Prompt
+                }
+            }
         }
         return undefined
     } catch (error) {
@@ -127,20 +137,26 @@ export async function getUserByUsername(username: string): Promise<User | undefi
 
 export async function getPromptsByUser(username: string): Promise<Prompt[]> {
     try {
-        const q = query(
-            collection(db, PROMPTS_COLLECTION),
-            where("authorUsername", "==", username),
-            orderBy("createdAt", "desc")
-        )
-        const querySnapshot = await getDocs(q)
-        return querySnapshot.docs.map(doc => {
-            const data = doc.data()
-            return {
-                id: doc.id,
-                ...data,
-                createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || new Date().toISOString()
-            }
-        }) as unknown as Prompt[]
+        // First find user by username to get their ID
+        const user = await getUserByUsername(username);
+        if (!user) return [];
+
+        const docRef = doc(db, PROMPTS_COLLECTION, user.id)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+            const data = docSnap.data()
+            const { prompts, ...userInfo } = data
+            return (prompts || []).map((p: any) => ({
+                ...p,
+                ...userInfo
+            })).sort((a: any, b: any) => {
+                const dateA = new Date(a.createdAt).getTime()
+                const dateB = new Date(b.createdAt).getTime()
+                return dateB - dateA
+            })
+        }
+        return []
     } catch (error) {
         console.error("Error fetching prompts by user:", error)
         return []
@@ -184,8 +200,20 @@ export async function createPrompt(promptData: Omit<Prompt, "id" | "createdAt" |
         const authorAvatar = user.photoURL || user.avatar || "";
         const authorUsername = user.username || authorName.toLowerCase().replace(/\s+/g, '_') || "anonymous";
 
-        const docRef = await addDoc(collection(db, PROMPTS_COLLECTION), {
+        const promptId = `prompt_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        const newPrompt = {
             ...promptData,
+            id: promptId,
+            createdAt: new Date().toISOString(),
+            likes: 0,
+            views: 0,
+            downloads: 0,
+            comments: []
+        };
+
+        const docRef = doc(db, PROMPTS_COLLECTION, authorId);
+        await setDoc(docRef, {
+            // Store user info once at the root
             authorId: authorId,
             author: authorName,
             authorUsername: authorUsername,
@@ -196,13 +224,11 @@ export async function createPrompt(promptData: Omit<Prompt, "id" | "createdAt" |
                 username: authorUsername,
                 avatar: authorAvatar
             },
-            createdAt: serverTimestamp(),
-            likes: 0,
-            views: 0,
-            downloads: 0,
-            comments: []
-        });
-        return docRef.id;
+            // Add prompt to the array
+            prompts: arrayUnion(newPrompt)
+        }, { merge: true });
+
+        return promptId;
     } catch (error) {
         console.error("Error creating prompt:", error);
         throw error;
