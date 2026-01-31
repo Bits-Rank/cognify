@@ -1,3 +1,8 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Logs
 logs
 *.log
@@ -6,19 +11,37 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+firebase-debug.log*
 
+# Dependencies
 node_modules
+.pnp
+.pnp.js
+
+# Production / Build
 dist
 dist-ssr
-*.local
+build/
+.vercel
+.netlify
+
+# Firebase
+.firebase/
+firestore.indexes.json
+firestore.rules
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+Thumbs.db
+desktop.ini
