@@ -20,38 +20,43 @@ const Wire = ({ from, to, color = "#666", version = 0 }: { from: string; to: str
     const [path, setPath] = useState("")
 
     useEffect(() => {
+        let frameId: number;
         const updatePath = () => {
-            const fromEl = document.getElementById(from)
-            const toEl = document.getElementById(to)
-            if (!fromEl || !toEl) return
+            frameId = requestAnimationFrame(() => {
+                const fromEl = document.getElementById(from)
+                const toEl = document.getElementById(to)
+                if (!fromEl || !toEl) return
 
-            const container = document.getElementById("node-canvas")
-            if (!container) return
+                const container = document.getElementById("node-canvas")
+                if (!container) return
 
-            const containerRect = container.getBoundingClientRect()
-            const fromRect = fromEl.getBoundingClientRect()
-            const toRect = toEl.getBoundingClientRect()
+                const containerRect = container.getBoundingClientRect()
+                const fromRect = fromEl.getBoundingClientRect()
+                const toRect = toEl.getBoundingClientRect()
 
-            const x1 = fromRect.left + fromRect.width / 2 - containerRect.left
-            const y1 = fromRect.top + fromRect.height / 2 - containerRect.top
-            const x2 = toRect.left + toRect.width / 2 - containerRect.left
-            const y2 = toRect.top + toRect.height / 2 - containerRect.top
+                const x1 = fromRect.left + fromRect.width / 2 - containerRect.left
+                const y1 = fromRect.top + fromRect.height / 2 - containerRect.top
+                const x2 = toRect.left + toRect.width / 2 - containerRect.left
+                const y2 = toRect.top + toRect.height / 2 - containerRect.top
 
-            // Bezier curve control points
-            const cx1 = x1 + Math.abs(x2 - x1) * 0.5
-            const cx2 = x2 - Math.abs(x2 - x1) * 0.5
+                // Bezier curve control points
+                const cx1 = x1 + Math.abs(x2 - x1) * 0.5
+                const cx2 = x2 - Math.abs(x2 - x1) * 0.5
 
-            setPath(`M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`)
+                setPath(`M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`)
+            })
         }
 
         updatePath()
         window.addEventListener("resize", updatePath)
-        // Small delay to ensure DOM is ready
+
+        // Initial sync
         const timer = setTimeout(updatePath, 100)
 
         return () => {
             window.removeEventListener("resize", updatePath)
             clearTimeout(timer)
+            cancelAnimationFrame(frameId)
         }
     }, [from, to, version])
 
@@ -61,11 +66,15 @@ const Wire = ({ from, to, color = "#666", version = 0 }: { from: string; to: str
         <path
             d={path}
             stroke={color}
-            strokeWidth="2.5"
+            strokeWidth="2"
             fill="none"
             strokeLinecap="round"
             className="transition-[stroke] duration-300"
-            style={{ filter: `drop-shadow(0 0 4px ${color}40)`, pointerEvents: "none" }}
+            style={{
+                filter: `drop-shadow(0 0 4px ${color}80)`,
+                pointerEvents: "none",
+                opacity: 0.6
+            }}
         />
     )
 }
@@ -97,14 +106,25 @@ const Node = ({ title, color, children, className = "", id, position, onDrag }: 
         // Prevent accidental text selection while dragging
         e.preventDefault()
 
+        const canvas = document.getElementById("node-canvas")
+        const nodeEl = document.getElementById(id)
+        if (!canvas || !nodeEl) return
+
+        const canvasRect = canvas.getBoundingClientRect()
+        const nodeRect = nodeEl.getBoundingClientRect()
+
         const startX = e.clientX - position.x
         const startY = e.clientY - position.y
 
         const handleMouseMove = (moveEvent: MouseEvent) => {
-            onDrag(id, {
-                x: moveEvent.clientX - startX,
-                y: moveEvent.clientY - startY
-            })
+            const newX = moveEvent.clientX - startX
+            const newY = moveEvent.clientY - startY
+
+            // Use cached rects for clamping
+            const clampedX = Math.max(0, Math.min(newX, canvasRect.width - nodeRect.width))
+            const clampedY = Math.max(0, Math.min(newY, canvasRect.height - nodeRect.height))
+
+            onDrag(id, { x: clampedX, y: clampedY })
         }
 
         const handleMouseUp = () => {
@@ -119,23 +139,31 @@ const Node = ({ title, color, children, className = "", id, position, onDrag }: 
     return (
         <div
             id={id}
-            className={`rounded-xl overflow-visible border border-white/5 ${className} transition-[border-color,box-shadow] duration-300 hover:border-white/10 bg-zinc-900/40 backdrop-blur-md shadow-2xl z-10 w-[calc(100%-48px)] mx-auto lg:w-72 lg:absolute touch-none relative`}
+            className={`rounded-[1.25rem] overflow-visible border border-white/10 ${className} hover:border-white/20 bg-zinc-900/60 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] z-10 w-[calc(100%-48px)] mx-auto lg:w-[320px] lg:absolute touch-none relative group/node`}
             style={{
-                left: window.innerWidth >= 1024 ? position.x : undefined,
-                top: window.innerWidth >= 1024 ? position.y : undefined,
+                transform: window.innerWidth >= 1024 ? `translate3d(${position.x}px, ${position.y}px, 0)` : undefined,
                 cursor: window.innerWidth >= 1024 ? 'default' : 'inherit',
-                userSelect: 'none'
+                userSelect: 'none',
+                willChange: 'transform'
             }}
         >
             <div
                 onMouseDown={handleMouseDown}
-                className={`px-4 py-2.5 flex items-center gap-2 rounded-t-xl lg:cursor-grab active:lg:cursor-grabbing`}
-                style={{ backgroundColor: `${color}30`, borderBottom: `1px solid ${color}40` }}
+                className={`px-5 py-3 flex items-center justify-between rounded-t-[1.25rem] lg:cursor-grab active:lg:cursor-grabbing border-b border-white/5`}
+                style={{
+                    background: `linear-gradient(to bottom right, ${color}25, ${color}10)`,
+                }}
             >
-                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                <span className="font-semibold text-[11px] tracking-wide uppercase text-white/90">{title}</span>
+                <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}` }} />
+                    <span className="font-bold text-[10px] tracking-[0.1em] uppercase text-white/70">{title}</span>
+                </div>
+                <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/5" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/5" />
+                </div>
             </div>
-            <div className="p-4">{children}</div>
+            <div className="p-5">{children}</div>
         </div>
     )
 }
@@ -226,17 +254,7 @@ export function SubmitPromptPage() {
     }
 
     const handleNodeDrag = (id: string, pos: { x: number, y: number }) => {
-        const canvas = document.getElementById("node-canvas")
-        const nodeEl = document.getElementById(id)
-        if (!canvas || !nodeEl) return
-
-        const canvasRect = canvas.getBoundingClientRect()
-        const nodeRect = nodeEl.getBoundingClientRect()
-
-        const clampedX = Math.max(0, Math.min(pos.x, canvasRect.width - nodeRect.width))
-        const clampedY = Math.max(0, Math.min(pos.y, canvasRect.height - nodeRect.height))
-
-        setNodePositions(prev => ({ ...prev, [id]: { x: clampedX, y: clampedY } }))
+        setNodePositions(prev => ({ ...prev, [id]: pos }))
         setWireVersion(v => v + 1)
     }
 
@@ -280,27 +298,34 @@ export function SubmitPromptPage() {
 
     return (
         <div className="min-h-screen text-zinc-200 p-6 font-mono text-sm">
+            {/* Ambient Background Glows */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[120px] rounded-full animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-emerald-500/5 blur-[100px] rounded-full animate-pulse" style={{ animationDelay: '4s' }} />
+            </div>
+
             {/* Background grid */}
             <div
-                className="fixed inset-0 pointer-events-none opacity-[0.05]"
+                className="fixed inset-0 pointer-events-none opacity-[0.03]"
                 style={{
                     backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
                     backgroundSize: '40px 40px'
                 }}
             />
             <div
-                className="fixed inset-0 pointer-events-none opacity-[0.02]"
+                className="fixed inset-0 pointer-events-none opacity-[0.015]"
                 style={{
                     backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
                     backgroundSize: '10px 10px'
                 }}
             />
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 relative z-10">
-                <h1 className="text-xl font-bold flex items-center gap-3">
-                    <Sparkles className="text-primary h-5 w-5" />
+            <div className="flex justify-center mb-12 relative z-10">
+                <div className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-primary/20 bg-primary/5 text-primary font-bold uppercase tracking-[0.15em] text-[10px] shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)] backdrop-blur-sm">
+                    <Sparkles className="h-3.5 w-3.5" />
                     Submit Workflow
-                </h1>
+                </div>
             </div>
 
             <div className="relative w-full">
@@ -335,12 +360,12 @@ export function SubmitPromptPage() {
                                         value={formData.model}
                                         onValueChange={(value) => setFormData({ ...formData, model: value as AIModel })}
                                     >
-                                        <SelectTrigger className="w-full bg-white/5 border-white/10 rounded h-9 text-xs">
+                                        <SelectTrigger className="w-full bg-black/20 border-white/10 rounded-lg h-10 text-xs hover:border-white/20 hover:bg-black/30 transition-all">
                                             <SelectValue placeholder="Select model" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-zinc-900 border-white/10 text-zinc-200">
+                                        <SelectContent className="bg-zinc-900/90 backdrop-blur-xl border-white/10 text-zinc-200">
                                             {aiModels.map(m => (
-                                                <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-white/10 focus:text-white">
+                                                <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-primary/20 focus:text-white cursor-pointer py-2">
                                                     {m.label}
                                                 </SelectItem>
                                             ))}
@@ -353,12 +378,12 @@ export function SubmitPromptPage() {
                                         value={formData.category}
                                         onValueChange={(value) => setFormData({ ...formData, category: value as Category })}
                                     >
-                                        <SelectTrigger className="w-full bg-white/5 border-white/10 rounded h-9 text-xs">
+                                        <SelectTrigger className="w-full bg-black/20 border-white/10 rounded-lg h-10 text-xs hover:border-white/20 hover:bg-black/30 transition-all">
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-zinc-900 border-white/10 text-zinc-200">
+                                        <SelectContent className="bg-zinc-900/90 backdrop-blur-xl border-white/10 text-zinc-200">
                                             {categories.map(c => (
-                                                <SelectItem key={c.value} value={c.value} className="text-xs focus:bg-white/10 focus:text-white">
+                                                <SelectItem key={c.value} value={c.value} className="text-xs focus:bg-primary/20 focus:text-white cursor-pointer py-2">
                                                     {c.label}
                                                 </SelectItem>
                                             ))}
@@ -380,19 +405,19 @@ export function SubmitPromptPage() {
                                 <div className="absolute -right-6 top-8">
                                     <div id="latent-out-0" className="w-3 h-3 rounded-full bg-blue-500/40 border-2 border-blue-500" style={{ boxShadow: "0 0 8px #3b82f680" }} />
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="bg-white/5 p-2 rounded border border-white/10">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-black/20 p-3 rounded-lg border border-white/10 focus-within:border-blue-500/50 transition-all">
                                         <FieldLabel label="width" tooltip="Image width in pixels." />
-                                        <input type="number" value={formData.width} onChange={e => setFormData({ ...formData, width: parseInt(e.target.value) })} className="bg-transparent w-full outline-none text-sm font-bold" />
+                                        <input type="number" value={formData.width} onChange={e => setFormData({ ...formData, width: parseInt(e.target.value) })} className="bg-transparent w-full outline-none text-sm font-bold text-white" />
                                     </div>
-                                    <div className="bg-white/5 p-2 rounded border border-white/10">
+                                    <div className="bg-black/20 p-3 rounded-lg border border-white/10 focus-within:border-blue-500/50 transition-all">
                                         <FieldLabel label="height" tooltip="Image height in pixels." />
-                                        <input type="number" value={formData.height} onChange={e => setFormData({ ...formData, height: parseInt(e.target.value) })} className="bg-transparent w-full outline-none text-sm font-bold" />
+                                        <input type="number" value={formData.height} onChange={e => setFormData({ ...formData, height: parseInt(e.target.value) })} className="bg-transparent w-full outline-none text-sm font-bold text-white" />
                                     </div>
                                 </div>
-                                <div className="bg-white/5 p-2 rounded border border-white/10 flex justify-between">
-                                    <span className="text-[9px] text-zinc-600">batch_size</span>
-                                    <span className="font-bold">1</span>
+                                <div className="bg-black/20 p-3 rounded-lg border border-white/10 flex justify-between items-center">
+                                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">batch_size</span>
+                                    <span className="font-bold text-blue-400">1</span>
                                 </div>
                             </div>
                         </Node>
@@ -415,7 +440,7 @@ export function SubmitPromptPage() {
                                 <textarea
                                     value={formData.prompt}
                                     onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-                                    className="w-full h-32 bg-white/5 border border-white/10 resize-none p-3 text-sm outline-none rounded focus:border-white/20 transition-colors"
+                                    className="w-full h-32 bg-black/20 border border-white/10 resize-none p-4 text-sm outline-none rounded-lg focus:border-green-500/50 focus:bg-black/30 transition-all text-white placeholder:text-zinc-600"
                                     placeholder="photorealistic, visionary portrait..."
                                 />
                             </div>
@@ -431,15 +456,15 @@ export function SubmitPromptPage() {
                         >
                             <div className="relative">
                                 <div className="absolute -left-6 top-8">
-                                    <div id="negative-in-1" className="w-3 h-3 rounded-full bg-red-500/40 border-2 border-red-500" style={{ boxShadow: "0 0 8px #ef444480" }} />
+                                    <div id="negative-in-1" className="w-3 h-3 rounded-full bg-red-500/40 border-2 border-red-500" style={{ boxShadow: "0 0 10px #ef4444" }} />
                                 </div>
                                 <div className="absolute -right-6 top-8">
-                                    <div id="negative-out-0" className="w-3 h-3 rounded-full bg-red-500/40 border-2 border-red-500" style={{ boxShadow: "0 0 8px #ef444480" }} />
+                                    <div id="negative-out-0" className="w-3 h-3 rounded-full bg-red-500/40 border-2 border-red-500" style={{ boxShadow: "0 0 10px #ef4444" }} />
                                 </div>
                                 <textarea
                                     value={formData.negativePrompt}
                                     onChange={(e) => setFormData({ ...formData, negativePrompt: e.target.value })}
-                                    className="w-full h-32 bg-white/5 border border-white/10 resize-none p-3 text-sm outline-none rounded focus:border-white/20 transition-colors"
+                                    className="w-full h-32 bg-black/20 border border-white/10 resize-none p-4 text-sm outline-none rounded-lg focus:border-red-500/50 focus:bg-black/30 transition-all text-white placeholder:text-zinc-600"
                                     placeholder="ugly, boring, bad anatomy..."
                                 />
                             </div>
@@ -460,30 +485,37 @@ export function SubmitPromptPage() {
                                     <div id="save-in-2" className="w-3 h-3 rounded-full bg-red-500/40 border-2 border-red-500" style={{ boxShadow: "0 0 8px #ef444480" }} />
                                     <div id="save-in-3" className="w-3 h-3 rounded-full bg-blue-500/40 border-2 border-blue-500" style={{ boxShadow: "0 0 8px #3b82f680" }} />
                                 </div>
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     <div
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="aspect-video bg-black/40 rounded border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden hover:border-teal-500/50 transition-colors group cursor-pointer relative"
+                                        className="aspect-video bg-black/40 rounded-lg border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden hover:border-teal-500/50 hover:bg-black/60 transition-all group cursor-pointer relative"
                                     >
                                         {uploading ? (
                                             <div className="flex flex-col items-center gap-2">
                                                 <Loader2 className="h-8 w-8 text-teal-500 animate-spin" />
-                                                <span className="text-[10px] text-zinc-400">Uploading...</span>
+                                                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Uploading...</span>
                                             </div>
                                         ) : formData.image ? (
                                             <>
                                                 <img src={formData.image} className="w-full h-full object-cover" alt="Preview" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                    <ImagePlus className="h-6 w-6 text-white" />
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-sm">
+                                                    <div className="bg-white/10 p-3 rounded-full border border-white/20">
+                                                        <ImagePlus className="h-6 w-6 text-white" />
+                                                    </div>
                                                 </div>
-                                                <div className="absolute top-2 right-2 bg-teal-500 rounded-full p-1">
-                                                    <CheckCircle2 className="h-3 w-3 text-white" />
+                                                <div className="absolute top-3 right-3 bg-teal-500 text-white rounded-full p-1 shadow-[0_0_15px_rgba(20,184,166,0.5)]">
+                                                    <CheckCircle2 className="h-3.5 w-3.5" />
                                                 </div>
                                             </>
                                         ) : (
-                                            <div className="text-center p-4">
-                                                <ImagePlus className="h-6 w-6 mx-auto mb-1 text-zinc-600 group-hover:text-teal-500 transition-colors" />
-                                                <span className="text-[10px] text-zinc-600 group-hover:text-teal-500 transition-colors">Click to upload</span>
+                                            <div className="text-center p-6 space-y-3 transition-transform group-hover:scale-110 duration-300">
+                                                <div className="bg-white/5 p-4 rounded-full inline-block border border-white/5 group-hover:border-teal-500/30 group-hover:bg-teal-500/10 transition-all">
+                                                    <ImagePlus className="h-8 w-8 text-zinc-600 group-hover:text-teal-500 transition-colors" />
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-[10px] text-zinc-500 group-hover:text-teal-500 transition-colors font-bold uppercase tracking-widest">Select Image</span>
+                                                    <span className="text-[9px] text-zinc-600">JPG, PNG, WebP up to 10MB</span>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -497,38 +529,60 @@ export function SubmitPromptPage() {
                                         disabled={uploading}
                                     />
 
-                                    <input
-                                        type="text"
-                                        placeholder="Title..."
-                                        value={formData.title}
-                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs outline-none font-bold focus:border-white/20 transition-colors"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, isPremium: !formData.isPremium })}
-                                        className={`flex items-center justify-between w-full p-3 rounded-lg border transition-all ${formData.isPremium
-                                            ? 'bg-primary/20 border-primary/40'
-                                            : 'bg-white/5 border-white/10 hover:border-white/20'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Sparkles className={`h-4 w-4 ${formData.isPremium ? 'text-primary' : 'text-zinc-500'}`} />
-                                            <span className={`text-xs font-medium ${formData.isPremium ? 'text-primary' : 'text-zinc-400'}`}>
-                                                Premium
-                                            </span>
+                                    <div className="space-y-3">
+                                        <div className="bg-black/20 p-3 rounded-lg border border-white/10 focus-within:border-teal-500/50 transition-all">
+                                            <FieldLabel label="image_title" tooltip="Give your masterpiece a name." />
+                                            <input
+                                                type="text"
+                                                placeholder="Ethereal Landscapes..."
+                                                value={formData.title}
+                                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                                className="w-full bg-transparent outline-none font-bold text-sm text-white placeholder:text-zinc-700"
+                                            />
                                         </div>
-                                        <div className={`w-10 h-5 rounded-full p-0.5 transition-colors ${formData.isPremium ? 'bg-primary' : 'bg-white/10'}`}>
-                                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${formData.isPremium ? 'translate-x-5' : 'translate-x-0'}`} />
-                                        </div>
-                                    </button>
-                                    <Button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="w-full bg-primary hover:bg-primary/90 font-bold"
-                                    >
-                                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Queue Prompt"}
-                                    </Button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, isPremium: !formData.isPremium })}
+                                            className={`flex items-center justify-between w-full p-4 rounded-xl border transition-all duration-300 ${formData.isPremium
+                                                ? 'bg-primary/20 border-primary/40 shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]'
+                                                : 'bg-black/20 border-white/10 hover:border-white/20'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-lg ${formData.isPremium ? 'bg-primary/20 text-primary' : 'bg-white/5 text-zinc-500'}`}>
+                                                    <Sparkles className="h-4 w-4" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <div className={`text-[10px] font-bold uppercase tracking-wider ${formData.isPremium ? 'text-primary' : 'text-zinc-500'}`}>
+                                                        Premium Mode
+                                                    </div>
+                                                    <div className="text-[9px] text-zinc-600">Exclusive feature list</div>
+                                                </div>
+                                            </div>
+                                            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${formData.isPremium ? 'bg-primary' : 'bg-white/10'}`}>
+                                                <div className={`w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 ${formData.isPremium ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </div>
+                                        </button>
+
+                                        <Button
+                                            type="submit"
+                                            disabled={isSubmitting}
+                                            className={`w-full h-12 rounded-xl font-bold text-sm transition-all duration-300 shadow-xl ${isSubmitting
+                                                ? 'bg-zinc-800'
+                                                : 'bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] shadow-primary/20'
+                                                }`}
+                                        >
+                                            {isSubmitting ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    <span>Processing...</span>
+                                                </div>
+                                            ) : (
+                                                "Queue Prompt"
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </Node>
