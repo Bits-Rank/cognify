@@ -1,17 +1,22 @@
 
 import { useParams, Link } from "react-router-dom"
 import { useEffect, useState } from "react"
-import { Copy, ArrowLeft, Heart, User, Calendar, Tag } from "lucide-react"
+import { Copy, ArrowLeft, Heart, User, Calendar, Tag, Lock, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getPromptById } from "@/lib/db"
 import { toast } from "react-toastify"
+import { useAuth } from "@/lib/auth-context"
 import type { Prompt } from "@/lib/data"
 
 export function PromptDetailPage() {
     const { id } = useParams()
+    const { user, hasUnlockedPrompt, unlockPrompt } = useAuth()
     const [prompt, setPrompt] = useState<Prompt | null>(null)
     const [loading, setLoading] = useState(true)
     const [copied, setCopied] = useState(false)
+    const [isUnlocking, setIsUnlocking] = useState(false)
+
+    const isLocked = prompt?.isPremium && !hasUnlockedPrompt(id || "")
 
     useEffect(() => {
         async function loadPrompt() {
@@ -25,11 +30,34 @@ export function PromptDetailPage() {
     }, [id])
 
     const handleCopy = () => {
+        if (isLocked) return
         if (prompt?.prompt) {
             navigator.clipboard.writeText(prompt.prompt)
             setCopied(true)
             toast.success("Prompt copied to clipboard!")
             setTimeout(() => setCopied(false), 2000)
+        }
+    }
+
+    const handleUnlock = async () => {
+        if (!user) {
+            toast.info("Please sign in to unlock premium prompts")
+            return
+        }
+
+        if (user.credits < 1) {
+            toast.error("Insufficient credits. You need 1 credit to unlock.")
+            return
+        }
+
+        setIsUnlocking(true)
+        try {
+            await unlockPrompt(id || "")
+            toast.success("Prompt unlocked successfully!")
+        } catch (error: any) {
+            toast.error(error.message || "Failed to unlock prompt")
+        } finally {
+            setIsUnlocking(false)
         }
     }
 
@@ -129,27 +157,42 @@ export function PromptDetailPage() {
 
                             <h3 className="text-xs uppercase tracking-[0.2em] text-muted-foreground/40 mb-6 font-bold">Prompt Recipe</h3>
                             <div className="relative">
-                                <p className="text-lg leading-relaxed text-foreground/80 font-normal font-mono min-h-[140px]">
-                                    {prompt.prompt}
+                                <p className={`text-lg leading-relaxed text-foreground/80 font-normal font-mono min-h-[140px] ${isLocked ? 'blur-md select-none opacity-20' : ''}`}>
+                                    {isLocked ? "This is a premium prompt. Access the neural recipe by unlocking it below." : prompt.prompt}
                                 </p>
+
+                                {isLocked && (
+                                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-6">
+                                        <div className="w-16 h-16 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-8 shadow-2xl">
+                                            <Lock className="h-6 w-6 text-primary" />
+                                        </div>
+                                        <Button
+                                            onClick={handleUnlock}
+                                            disabled={isUnlocking}
+                                            className="rounded-full px-12 h-14 font-black uppercase tracking-widest bg-primary text-primary-foreground hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(var(--primary-rgb),0.3)] disabled:opacity-50"
+                                        >
+                                            {isUnlocking ? "Decrypting..." : "Unlock for 1 Credit"}
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="mt-8 flex justify-end">
-                                <Button
-                                    size="lg"
-                                    onClick={handleCopy}
-                                    className="rounded-full px-10 h-12 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 transition-all hover:scale-[1.02] active:scale-95 shadow-none"
-                                >
-                                    {copied ? (
-                                        <>Copied!</>
-                                    ) : (
-                                        <>
-                                            <Copy className="h-4 w-4 mr-3" />
-                                            Copy Prompt
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
+                            {!isLocked && (
+                                <div className="mt-8 flex justify-end">
+                                    <Button
+                                        size="lg"
+                                        onClick={handleCopy}
+                                        className="rounded-full px-10 h-12 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 transition-all hover:scale-[1.02] active:scale-95 shadow-none"
+                                    >
+                                        {copied ? "Copied!" : (
+                                            <>
+                                                <Copy className="h-4 w-4 mr-3" />
+                                                Copy Prompt
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                         <div className="glass-card rounded-[24px] p-8 border-white/5 shadow-none">
@@ -177,7 +220,9 @@ export function PromptDetailPage() {
                                 </div>
                                 <div className="space-y-1 col-span-2">
                                     <span className="text-muted-foreground/60 font-semibold uppercase block tracking-widest">Seed</span>
-                                    <span className="text-foreground font-semibold font-mono text-xs truncate max-w-full block">{prompt.seed || "Random"}</span>
+                                    <span className="text-foreground font-semibold font-mono text-xs truncate max-w-full block">
+                                        {isLocked ? "••••••••••" : (prompt.seed || "Random")}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -185,14 +230,14 @@ export function PromptDetailPage() {
                         {prompt.negativePrompt && (
                             <div className="glass-card rounded-[24px] p-8 border-red-500/10 shadow-none">
                                 <h3 className="text-xs uppercase tracking-[0.2em] text-red-500/40 mb-4 font-bold">Excluded Patterns</h3>
-                                <p className="text-sm leading-relaxed text-red-500/60 font-mono">
-                                    {prompt.negativePrompt}
+                                <p className={`text-sm leading-relaxed text-red-500/60 font-mono ${isLocked ? 'blur-sm select-none opacity-40' : ''}`}>
+                                    {isLocked ? "Redacted pattern set for premium content." : prompt.negativePrompt}
                                 </p>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }

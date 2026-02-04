@@ -662,44 +662,58 @@ export const AdminDashboard = () => {
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 {auditData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((usr: any) => (
-                                                    <div key={usr.id} className={`p-4 sm:p-6 rounded-[2rem] md:rounded-[2.5rem] border ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-zinc-50 border-zinc-100'} flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-primary/20 transition-all`}>
-                                                        <div className="flex items-center gap-4 min-w-0 flex-1">
-                                                            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-[1rem] sm:rounded-[1.25rem] bg-primary/10 text-primary flex items-center justify-center font-bold text-base sm:text-lg flex-shrink-0">
-                                                                {usr.name?.[0] || usr.username?.[0] || 'U'}
-                                                            </div>
-                                                            <div className="min-w-0 pr-2">
-                                                                <h4 className="font-bold text-sm tracking-tight flex flex-wrap items-center gap-1.5 truncate">
-                                                                    <span className="truncate">{usr.name || usr.username}</span>
-                                                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                                    <div key={usr.id} className={`p-5 sm:p-6 rounded-[2.5rem] border ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-zinc-50 border-zinc-100'} flex flex-col gap-5 group hover:border-primary/20 transition-all`}>
+                                                        {/* Top Row: User Primary Info */}
+                                                        <div className="flex items-center justify-between gap-4">
+                                                            <div className="flex items-center gap-4 min-w-0">
+                                                                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-[1.25rem] bg-primary/10 text-primary flex items-center justify-center font-bold text-base sm:text-lg flex-shrink-0">
+                                                                    {usr.name?.[0] || usr.username?.[0] || 'U'}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <h4 className="font-bold text-sm tracking-tight flex items-center gap-1.5 truncate">
+                                                                        <span className="truncate">{usr.name || usr.username}</span>
                                                                         {usr.isVerified && <UserCheck className="h-3 w-3 text-primary" />}
-                                                                        {usr.subscription === 'pro' && <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary uppercase font-black">Pro</span>}
-                                                                        {usr.isBlocked && <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase font-black">Blocked</span>}
-                                                                    </div>
-                                                                </h4>
-                                                                <p className="text-[9px] sm:text-[10px] text-muted-foreground/40 font-bold uppercase tracking-widest truncate mt-0.5">
-                                                                    {usr.email || 'No email provided'}
-                                                                </p>
+                                                                    </h4>
+                                                                    <p className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-widest truncate">
+                                                                        {usr.email || 'No email provided'}
+                                                                    </p>
+                                                                </div>
                                                             </div>
-                                                        </div>
-
-                                                        <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-8 flex-shrink-0">
-                                                            <div className="text-left sm:text-right">
-                                                                <p className="text-[8px] sm:text-[9px] text-muted-foreground/30 font-bold uppercase tracking-[0.2em] mb-0.5">Member Since</p>
-                                                                <p className="font-mono text-[10px] sm:text-[11px] font-bold opacity-80">{new Date(usr.createdAt).toLocaleDateString()}</p>
-                                                            </div>
-                                                            <div className="flex gap-2">
+                                                            <div className="flex gap-2 flex-shrink-0">
                                                                 <button
                                                                     onClick={() => setEditingUser(usr)}
-                                                                    className={`p-2 sm:p-2.5 rounded-xl border transition-all ${isDark ? 'bg-white/[0.03] border-white/5 hover:bg-primary/20 hover:text-primary' : 'bg-white border-zinc-200 hover:border-primary/30 hover:text-primary shadow-sm'}`}
+                                                                    className={`p-2 rounded-xl border transition-all ${isDark ? 'bg-white/[0.03] border-white/5 hover:bg-primary/20 hover:text-primary' : 'bg-white border-zinc-200 shadow-sm'}`}
                                                                 >
-                                                                    <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                                                    <Edit2 className="h-3.5 w-3.5" />
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleAdminDeleteUser(usr.id)}
-                                                                    className={`p-2 sm:p-2.5 rounded-xl border transition-all ${isDark ? 'bg-white/[0.03] border-white/5 hover:bg-destructive/20 hover:text-destructive' : 'bg-white border-zinc-200 hover:border-destructive/30 hover:text-destructive shadow-sm'}`}
+                                                                    className={`p-2 rounded-xl border transition-all ${isDark ? 'bg-white/[0.03] border-white/5 hover:bg-destructive/20 hover:text-destructive' : 'bg-white border-zinc-200 shadow-sm'}`}
                                                                 >
-                                                                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                                                    <Trash2 className="h-3.5 w-3.5" />
                                                                 </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Status Badges Row */}
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {usr.subscription === 'pro' && <span className="text-[7px] px-2 py-0.5 rounded-full bg-primary/20 text-primary uppercase font-black tracking-widest border border-primary/10">Pro Node</span>}
+                                                            {usr.isBlocked && <span className="text-[7px] px-2 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase font-black tracking-widest border border-destructive/10">Restricted</span>}
+                                                            <div className={`px-2 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-white/50 border-white/5' : 'bg-zinc-100 text-zinc-500 border-zinc-200'} text-[7px] font-black uppercase tracking-widest border`}>
+                                                                {usr.credits || 0} Credits
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Footer Row: Meta Data */}
+                                                        <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-auto">
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <p className="text-[8px] text-muted-foreground/30 font-bold uppercase tracking-[0.2em]">Deployment</p>
+                                                                <p className="font-mono text-[10px] font-bold opacity-60">{new Date(usr.createdAt).toLocaleDateString()}</p>
+                                                            </div>
+                                                            <div className="h-8 w-px bg-white/5 mx-4 hidden sm:block" />
+                                                            <div className="flex flex-col items-end gap-0.5">
+                                                                <p className="text-[8px] text-muted-foreground/30 font-bold uppercase tracking-[0.2em]">Storage</p>
+                                                                <p className="text-[10px] font-bold opacity-60">S-Tier</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -916,9 +930,18 @@ export const AdminDashboard = () => {
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-bold ml-1">Available Credits</Label>
+                                <Input
+                                    type="number"
+                                    value={editingUser?.credits || 0}
+                                    onChange={e => setEditingUser({ ...editingUser, credits: parseInt(e.target.value) || 0 })}
+                                    className="rounded-xl"
+                                />
+                            </div>
                         </div>
                         <Button
-                            onClick={() => handleAdminUpdateUser(editingUser.id, { name: editingUser.name, isVerified: editingUser.isVerified, subscription: editingUser.subscription, isBlocked: editingUser.isBlocked })}
+                            onClick={() => handleAdminUpdateUser(editingUser.id, { name: editingUser.name, isVerified: editingUser.isVerified, subscription: editingUser.subscription, isBlocked: editingUser.isBlocked, credits: editingUser.credits })}
                             className="w-full h-12 rounded-xl font-bold transition-all hover:scale-[1.02]"
                         >
                             Commit Changes

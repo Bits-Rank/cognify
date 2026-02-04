@@ -179,6 +179,7 @@ export async function createUserDocument(user: any) {
                 avatar: user.photoURL,
                 createdAt: serverTimestamp(),
                 subscription: "free",
+                credits: 5, // Grant 5 initial credits
                 generationsUsed: 0,
                 promptsUnlocked: []
             })
@@ -249,6 +250,42 @@ export async function updateUserProfile(userId: string, data: Partial<User>) {
         return true
     } catch (error) {
         console.error("Error updating user profile:", error)
+        throw error
+    }
+}
+
+export async function unlockPremiumPrompt(userId: string, promptId: string) {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, userId)
+        const userSnap = await getDoc(userRef)
+
+        if (!userSnap.exists()) throw new Error("User not found")
+
+        const userData = userSnap.data()
+        const currentCredits = userData.credits || 0
+        const unlocked = userData.promptsUnlocked || []
+
+        if (unlocked.includes(promptId)) {
+            return { success: true, message: "Already unlocked" }
+        }
+
+        if (currentCredits < 1) {
+            throw new Error("Insufficient credits. Purchase more to unlock.")
+        }
+
+        // Atomic-ish update (not a transaction but good enough for this scale)
+        await updateDoc(userRef, {
+            credits: currentCredits - 1,
+            promptsUnlocked: arrayUnion(promptId),
+            updatedAt: serverTimestamp()
+        })
+
+        // Log the activity
+        await logUserActivity(userId, "unlock_prompt", `Unlocked premium prompt: ${promptId}`)
+
+        return { success: true, credits: currentCredits - 1 }
+    } catch (error: any) {
+        console.error("Error unlocking prompt:", error)
         throw error
     }
 }
