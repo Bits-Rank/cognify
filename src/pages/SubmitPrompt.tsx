@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import React, { useState, useEffect, useRef, useCallback, memo } from "react"
 import { useNavigate } from "react-router-dom"
 import { Sparkles, Loader2, Upload, HelpCircle, ImagePlus, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,122 +14,200 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import type { Category, AIModel } from "@/lib/data"
+import { useTheme } from "@/components/ThemeProvider"
 
 // Wire connection component
-const Wire = ({ from, to, color = "#666", version = 0 }: { from: string; to: string; color?: string; version?: number }) => {
-    const [path, setPath] = useState("")
+const Wire = memo(({ from, to, color = "#666", version = 0 }: { from: string; to: string; color?: string; version?: number }) => {
+    const pathRef = useRef<SVGPathElement>(null)
+    const { theme } = useTheme()
+    const isDark = theme === "dark"
 
     useEffect(() => {
-        let frameId: number;
         const updatePath = () => {
-            frameId = requestAnimationFrame(() => {
-                const fromEl = document.getElementById(from)
-                const toEl = document.getElementById(to)
-                if (!fromEl || !toEl) return
+            const fromEl = document.getElementById(from)
+            const toEl = document.getElementById(to)
+            const container = document.getElementById("node-canvas")
+            const pathEl = pathRef.current
 
-                const container = document.getElementById("node-canvas")
-                if (!container) return
+            if (!fromEl || !toEl || !container || !pathEl) return
 
-                const containerRect = container.getBoundingClientRect()
-                const fromRect = fromEl.getBoundingClientRect()
-                const toRect = toEl.getBoundingClientRect()
+            const containerRect = container.getBoundingClientRect()
+            const fromRect = fromEl.getBoundingClientRect()
+            const toRect = toEl.getBoundingClientRect()
 
-                const x1 = fromRect.left + fromRect.width / 2 - containerRect.left
-                const y1 = fromRect.top + fromRect.height / 2 - containerRect.top
-                const x2 = toRect.left + toRect.width / 2 - containerRect.left
-                const y2 = toRect.top + toRect.height / 2 - containerRect.top
+            const x1 = fromRect.left + fromRect.width / 2 - containerRect.left
+            const y1 = fromRect.top + fromRect.height / 2 - containerRect.top
+            const x2 = toRect.left + toRect.width / 2 - containerRect.left
+            const y2 = toRect.top + toRect.height / 2 - containerRect.top
 
-                // Bezier curve control points
-                const cx1 = x1 + Math.abs(x2 - x1) * 0.5
-                const cx2 = x2 - Math.abs(x2 - x1) * 0.5
+            const cx1 = x1 + Math.abs(x2 - x1) * 0.5
+            const cx2 = x2 - Math.abs(x2 - x1) * 0.5
 
-                setPath(`M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`)
-            })
+            pathEl.setAttribute('d', `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`)
         }
 
         updatePath()
         window.addEventListener("resize", updatePath)
-
-        // Initial sync
-        const timer = setTimeout(updatePath, 100)
+        window.addEventListener("node-dragging", updatePath)
+        const timer = setTimeout(updatePath, 50)
 
         return () => {
             window.removeEventListener("resize", updatePath)
+            window.removeEventListener("node-dragging", updatePath)
             clearTimeout(timer)
-            cancelAnimationFrame(frameId)
         }
     }, [from, to, version])
 
-    if (!path) return null
-
     return (
         <path
-            d={path}
+            ref={pathRef}
+            data-from={from}
+            data-to={to}
             stroke={color}
-            strokeWidth="2"
+            strokeWidth="1.5"
             fill="none"
             strokeLinecap="round"
-            className="transition-[stroke] duration-300"
             style={{
-                filter: `drop-shadow(0 0 4px ${color}80)`,
+                filter: isDark ? `drop-shadow(0 0 3px ${color}40)` : `none`,
                 pointerEvents: "none",
-                opacity: 0.6
+                opacity: isDark ? 0.35 : 0.5,
+                willChange: 'd'
             }}
         />
     )
-}
+})
 
 // Tooltip component for field explanations
-const Tooltip = ({ text }: { text: string }) => (
-    <div className="group/tip relative inline-flex items-center ml-1">
-        <HelpCircle className="h-3 w-3 text-zinc-600 hover:text-zinc-400 cursor-help transition-colors" />
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg text-[11px] text-zinc-300 leading-relaxed w-64 opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all duration-200 z-50 shadow-xl pointer-events-none">
-            {text}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-600" />
+const Tooltip = ({ text }: { text: string }) => {
+    const { theme } = useTheme()
+    const isDark = theme === "dark"
+    return (
+        <div className="group/tip relative inline-flex items-center ml-1">
+            <HelpCircle className="h-3 w-3 text-zinc-600 hover:text-zinc-400 cursor-help transition-colors" />
+            <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 ${isDark ? 'bg-zinc-800 border-zinc-600 text-zinc-300' : 'bg-white border-zinc-200 text-zinc-600 shadow-lg'} border rounded-lg text-[11px] leading-relaxed w-64 opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all duration-200 z-50 pointer-events-none`}>
+                {text}
+                <div className={`absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent ${isDark ? 'border-t-zinc-600' : 'border-t-white'}`} />
+            </div>
         </div>
-    </div>
-)
+    )
+}
 
 // Field label with tooltip
-const FieldLabel = ({ label, tooltip }: { label: string; tooltip: string }) => (
-    <div className="flex items-center gap-1 mb-1">
-        <span className="text-[10px] text-zinc-500 uppercase">{label}</span>
-        <Tooltip text={tooltip} />
-    </div>
-)
+const FieldLabel = ({ label, tooltip }: { label: string; tooltip: string }) => {
+    const { theme } = useTheme()
+    return (
+        <div className="flex items-center gap-1 mb-1">
+            <span className={`text-[10px] ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-400 font-medium'} uppercase`}>{label}</span>
+            <Tooltip text={tooltip} />
+        </div>
+    )
+}
 
-const Node = ({ title, color, children, className = "", id, position, onDrag }: any) => {
+const Node = memo(({ title, color, children, className = "", id, position, onDrag }: any) => {
+    const { theme } = useTheme()
+    const isDark = theme === "dark"
+    const [isDragging, setIsDragging] = useState(false)
+    const nodeRef = useRef<HTMLDivElement>(null)
+
     const handleMouseDown = (e: React.MouseEvent) => {
-        // Disable dragging on small screens
         if (window.innerWidth < 1024) return;
-
-        // Prevent accidental text selection while dragging
         e.preventDefault()
 
         const canvas = document.getElementById("node-canvas")
-        const nodeEl = document.getElementById(id)
+        const nodeEl = nodeRef.current
         if (!canvas || !nodeEl) return
 
+        setIsDragging(true)
         const canvasRect = canvas.getBoundingClientRect()
         const nodeRect = nodeEl.getBoundingClientRect()
 
         const startX = e.clientX - position.x
         const startY = e.clientY - position.y
 
+        let currentX = position.x
+        let currentY = position.y
+        let frameId: number;
+
+        document.body.classList.add('dragging-active')
+
+        // Cache connected wires and identify stationary/moving endpoints
+        const connectedWires: { el: SVGPathElement, from: HTMLElement, to: HTMLElement, fromIsStorey: boolean, toIsStorey: boolean, staticRect?: DOMRect }[] = []
+        const wires = document.querySelectorAll(`path[data-from^="${id}"], path[data-to^="${id}"]`)
+
+        wires.forEach(wire => {
+            const w = wire as SVGPathElement
+            const fromId = w.getAttribute('data-from')!
+            const toId = w.getAttribute('data-to')!
+            const fEl = document.getElementById(fromId)
+            const tEl = document.getElementById(toId)
+
+            if (fEl && tEl) {
+                const fIsMoving = fromId.startsWith(id)
+                const tIsMoving = toId.startsWith(id)
+
+                connectedWires.push({
+                    el: w,
+                    from: fEl,
+                    to: tEl,
+                    fromIsStorey: fIsMoving,
+                    toIsStorey: tIsMoving,
+                    // If the other end is stationary, cache its rect now
+                    staticRect: !fIsMoving ? fEl.getBoundingClientRect() : (!tIsMoving ? tEl.getBoundingClientRect() : undefined)
+                })
+            }
+        })
+
         const handleMouseMove = (moveEvent: MouseEvent) => {
-            const newX = moveEvent.clientX - startX
-            const newY = moveEvent.clientY - startY
+            cancelAnimationFrame(frameId)
+            frameId = requestAnimationFrame(() => {
+                const newX = moveEvent.clientX - startX
+                const newY = moveEvent.clientY - startY
 
-            // Use cached rects for clamping
-            const clampedX = Math.max(0, Math.min(newX, canvasRect.width - nodeRect.width))
-            const clampedY = Math.max(0, Math.min(newY, canvasRect.height - nodeRect.height))
+                currentX = Math.max(0, Math.min(newX, canvasRect.width - nodeRect.width))
+                currentY = Math.max(0, Math.min(newY, canvasRect.height - nodeRect.height))
 
-            onDrag(id, { x: clampedX, y: clampedY })
+                if (nodeRef.current) {
+                    nodeRef.current.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`
+                }
+
+                // Update wires with partial caching
+                for (let i = 0; i < connectedWires.length; i++) {
+                    const { el, from, to, fromIsStorey, toIsStorey, staticRect } = connectedWires[i]
+
+                    let x1, y1, x2, y2;
+
+                    if (fromIsStorey) {
+                        const fR = from.getBoundingClientRect()
+                        x1 = fR.left + fR.width / 2 - canvasRect.left
+                        y1 = fR.top + fR.height / 2 - canvasRect.top
+
+                        const tR = staticRect || to.getBoundingClientRect()
+                        x2 = tR.left + tR.width / 2 - canvasRect.left
+                        y2 = tR.top + tR.height / 2 - canvasRect.top
+                    } else {
+                        const fR = staticRect || from.getBoundingClientRect()
+                        x1 = fR.left + fR.width / 2 - canvasRect.left
+                        y1 = fR.top + fR.height / 2 - canvasRect.top
+
+                        const tR = to.getBoundingClientRect()
+                        x2 = tR.left + tR.width / 2 - canvasRect.left
+                        y2 = tR.top + tR.height / 2 - canvasRect.top
+                    }
+
+                    const cx1 = x1 + Math.abs(x2 - x1) * 0.5
+                    const cx2 = x2 - Math.abs(x2 - x1) * 0.5
+                    el.setAttribute('d', `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`)
+                }
+            })
         }
 
         const handleMouseUp = () => {
+            setIsDragging(false)
+            document.body.classList.remove('dragging-active')
+            cancelAnimationFrame(frameId)
             document.removeEventListener('mousemove', handleMouseMove)
             document.removeEventListener('mouseup', handleMouseUp)
+            onDrag(id, { x: currentX, y: currentY })
         }
 
         document.addEventListener('mousemove', handleMouseMove)
@@ -139,38 +217,46 @@ const Node = ({ title, color, children, className = "", id, position, onDrag }: 
     return (
         <div
             id={id}
-            className={`rounded-[1.25rem] overflow-visible border border-white/10 ${className} hover:border-white/20 bg-zinc-900/60 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] z-10 w-[calc(100%-48px)] mx-auto lg:w-[320px] lg:absolute touch-none relative group/node`}
+            ref={nodeRef}
+            className={`rounded-[1.25rem] overflow-visible border ${isDark ? 'border-white/10 bg-zinc-900/60' : 'border-zinc-200 bg-white/80 shadow-xl'} ${className} hover:border-primary/20 transition-all duration-300 ${isDragging ? 'z-50 ring-2 ring-primary/20 scale-[1.01]' : 'z-10'} backdrop-blur-xl w-[calc(100%-48px)] mx-auto lg:w-[320px] lg:absolute touch-none relative group/node`}
             style={{
                 transform: window.innerWidth >= 1024 ? `translate3d(${position.x}px, ${position.y}px, 0)` : undefined,
-                cursor: window.innerWidth >= 1024 ? 'default' : 'inherit',
+                cursor: window.innerWidth >= 1024 ? (isDragging ? 'grabbing' : 'default') : 'inherit',
                 userSelect: 'none',
-                willChange: 'transform'
+                willChange: 'transform',
+                backdropFilter: isDragging ? 'none' : 'blur(24px)',
+                boxShadow: isDragging ? 'none' : undefined,
+                transition: isDragging ? 'none' : 'all 0.3s ease'
             }}
         >
             <div
                 onMouseDown={handleMouseDown}
-                className={`px-5 py-3 flex items-center justify-between rounded-t-[1.25rem] lg:cursor-grab active:lg:cursor-grabbing border-b border-white/5`}
+                className={`px-5 py-3 flex items-center justify-between rounded-t-[1.25rem] lg:cursor-grab active:lg:cursor-grabbing border-b ${isDark ? 'border-white/5' : 'border-zinc-100'}`}
                 style={{
-                    background: `linear-gradient(to bottom right, ${color}25, ${color}10)`,
+                    background: isDark
+                        ? `linear-gradient(to bottom right, ${color}25, ${color}10)`
+                        : `linear-gradient(to bottom right, ${color}15, ${color}05)`,
                 }}
             >
                 <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}` }} />
-                    <span className="font-bold text-[10px] tracking-[0.1em] uppercase text-white/70">{title}</span>
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color, boxShadow: isDark ? `0 0 10px ${color}` : `none` }} />
+                    <span className={`font-bold text-[10px] tracking-[0.1em] uppercase ${isDark ? 'text-white/70' : 'text-zinc-600'}`}>{title}</span>
                 </div>
                 <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-white/5" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-white/5" />
+                    <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-white/5' : 'bg-zinc-200'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-white/5' : 'bg-zinc-200'}`} />
                 </div>
             </div>
             <div className="p-5">{children}</div>
         </div>
     )
-}
+})
 
 export function SubmitPromptPage() {
     const { user } = useAuth()
     const navigate = useNavigate()
+    const { theme } = useTheme()
+    const isDark = theme === "dark"
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [formData, setFormData] = useState({
         title: "",
@@ -253,10 +339,9 @@ export function SubmitPromptPage() {
         }
     }
 
-    const handleNodeDrag = (id: string, pos: { x: number, y: number }) => {
+    const handleNodeDrag = useCallback((id: string, pos: { x: number, y: number }) => {
         setNodePositions(prev => ({ ...prev, [id]: pos }))
-        setWireVersion(v => v + 1)
-    }
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -297,32 +382,60 @@ export function SubmitPromptPage() {
     }
 
     return (
-        <div className="min-h-screen text-zinc-200 p-6 font-mono text-sm">
-            {/* Ambient Background Glows */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[120px] rounded-full animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-emerald-500/5 blur-[100px] rounded-full animate-pulse" style={{ animationDelay: '4s' }} />
+        <div className={`min-h-screen ${isDark ? 'text-zinc-200' : 'text-zinc-800'} p-6 font-mono text-sm`}>
+            {/* Global Performance Overrides during Drag */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                body.dragging-active * {
+                    pointer-events: none !important;
+                    transition: none !important;
+                    animation-play-state: paused !important;
+                }
+                body.dragging-active #node-canvas * {
+                    pointer-events: auto !important;
+                }
+                body.dragging-active .backdrop-blur-xl,
+                body.dragging-active .backdrop-blur-sm {
+                    backdrop-filter: none !important;
+                    background-color: ${isDark ? 'rgba(24, 24, 27, 0.95)' : 'rgba(255, 255, 255, 0.98)'} !important;
+                }
+                body.dragging-active .shadow-xl,
+                body.dragging-active .shadow-2xl {
+                    box-shadow: none !important;
+                }
+                body.dragging-active path {
+                    filter: none !important;
+                    opacity: 0.3 !important;
+                }
+            `}} />
+            {/* Optimized Visual Gradients (No heavy blurs) */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-50">
+                <div className={`absolute top-[-20%] left-[-10%] w-[60%] h-[60%] ${isDark ? 'bg-purple-900/10' : 'bg-purple-100/30'} rounded-full`} style={{ background: `radial-gradient(circle, ${isDark ? 'rgba(168,85,247,0.08)' : 'rgba(168,85,247,0.03)'} 0%, transparent 70%)` }} />
+                <div className={`absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] ${isDark ? 'bg-blue-900/10' : 'bg-blue-100/30'} rounded-full`} style={{ background: `radial-gradient(circle, ${isDark ? 'rgba(59,130,246,0.08)' : 'rgba(59,130,246,0.03)'} 0%, transparent 70%)` }} />
             </div>
 
             {/* Background grid */}
             <div
-                className="fixed inset-0 pointer-events-none opacity-[0.03]"
+                className={`fixed inset-0 pointer-events-none ${isDark ? 'opacity-[0.03]' : 'opacity-[0.05]'}`}
                 style={{
-                    backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+                    backgroundImage: isDark
+                        ? 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)'
+                        : 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
                     backgroundSize: '40px 40px'
                 }}
             />
             <div
-                className="fixed inset-0 pointer-events-none opacity-[0.015]"
+                className={`fixed inset-0 pointer-events-none ${isDark ? 'opacity-[0.015]' : 'opacity-[0.02]'}`}
                 style={{
-                    backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+                    backgroundImage: isDark
+                        ? 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)'
+                        : 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
                     backgroundSize: '10px 10px'
                 }}
             />
 
             <div className="flex justify-center mb-12 relative z-10">
-                <div className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-primary/20 bg-primary/5 text-primary font-bold uppercase tracking-[0.15em] text-[10px] shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)] backdrop-blur-sm">
+                <div className={`inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border ${isDark ? 'border-primary/20 bg-primary/5 text-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]' : 'border-primary/10 bg-primary/5 text-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.05)]'} font-bold uppercase tracking-[0.15em] text-[10px] backdrop-blur-sm`}>
                     <Sparkles className="h-3.5 w-3.5" />
                     Submit Workflow
                 </div>
@@ -360,12 +473,12 @@ export function SubmitPromptPage() {
                                         value={formData.model}
                                         onValueChange={(value) => setFormData({ ...formData, model: value as AIModel })}
                                     >
-                                        <SelectTrigger className="w-full bg-black/20 border-white/10 rounded-lg h-10 text-xs hover:border-white/20 hover:bg-black/30 transition-all">
+                                        <SelectTrigger className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-800'} rounded-lg h-10 text-xs hover:border-primary/30 transition-all`}>
                                             <SelectValue placeholder="Select model" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-zinc-900/90 backdrop-blur-xl border-white/10 text-zinc-200">
+                                        <SelectContent className={`${isDark ? 'bg-zinc-900/90 border-white/10 text-zinc-200' : 'bg-white border-zinc-200 text-zinc-800'} backdrop-blur-xl`}>
                                             {aiModels.map(m => (
-                                                <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-primary/20 focus:text-white cursor-pointer py-2">
+                                                <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-primary/20 focus:text-primary cursor-pointer py-2">
                                                     {m.label}
                                                 </SelectItem>
                                             ))}
@@ -378,12 +491,12 @@ export function SubmitPromptPage() {
                                         value={formData.category}
                                         onValueChange={(value) => setFormData({ ...formData, category: value as Category })}
                                     >
-                                        <SelectTrigger className="w-full bg-black/20 border-white/10 rounded-lg h-10 text-xs hover:border-white/20 hover:bg-black/30 transition-all">
+                                        <SelectTrigger className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-800'} rounded-lg h-10 text-xs hover:border-primary/30 transition-all`}>
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-zinc-900/90 backdrop-blur-xl border-white/10 text-zinc-200">
+                                        <SelectContent className={`${isDark ? 'bg-zinc-900/90 border-white/10 text-zinc-200' : 'bg-white border-zinc-200 text-zinc-800'} backdrop-blur-xl`}>
                                             {categories.map(c => (
-                                                <SelectItem key={c.value} value={c.value} className="text-xs focus:bg-primary/20 focus:text-white cursor-pointer py-2">
+                                                <SelectItem key={c.value} value={c.value} className="text-xs focus:bg-primary/20 focus:text-primary cursor-pointer py-2">
                                                     {c.label}
                                                 </SelectItem>
                                             ))}
@@ -406,18 +519,18 @@ export function SubmitPromptPage() {
                                     <div id="latent-out-0" className="w-3 h-3 rounded-full bg-blue-500/40 border-2 border-blue-500" style={{ boxShadow: "0 0 8px #3b82f680" }} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-black/20 p-3 rounded-lg border border-white/10 focus-within:border-blue-500/50 transition-all">
+                                    <div className={`p-3 rounded-lg border ${isDark ? 'bg-black/20 border-white/10 focus-within:border-blue-500/50' : 'bg-zinc-100 border-zinc-200 focus-within:border-blue-500/50'} transition-all`}>
                                         <FieldLabel label="width" tooltip="Image width in pixels." />
-                                        <input type="number" value={formData.width} onChange={e => setFormData({ ...formData, width: parseInt(e.target.value) })} className="bg-transparent w-full outline-none text-sm font-bold text-white" />
+                                        <input type="number" value={formData.width} onChange={e => setFormData({ ...formData, width: parseInt(e.target.value) })} className="bg-transparent w-full outline-none text-sm font-bold text-inherit" />
                                     </div>
-                                    <div className="bg-black/20 p-3 rounded-lg border border-white/10 focus-within:border-blue-500/50 transition-all">
+                                    <div className={`p-3 rounded-lg border ${isDark ? 'bg-black/20 border-white/10 focus-within:border-blue-500/50' : 'bg-zinc-100 border-zinc-200 focus-within:border-blue-500/50'} transition-all`}>
                                         <FieldLabel label="height" tooltip="Image height in pixels." />
-                                        <input type="number" value={formData.height} onChange={e => setFormData({ ...formData, height: parseInt(e.target.value) })} className="bg-transparent w-full outline-none text-sm font-bold text-white" />
+                                        <input type="number" value={formData.height} onChange={e => setFormData({ ...formData, height: parseInt(e.target.value) })} className="bg-transparent w-full outline-none text-sm font-bold text-inherit" />
                                     </div>
                                 </div>
-                                <div className="bg-black/20 p-3 rounded-lg border border-white/10 flex justify-between items-center">
+                                <div className={`p-3 rounded-lg border ${isDark ? 'bg-black/20 border-white/10' : 'bg-zinc-100 border-zinc-200'} flex justify-between items-center`}>
                                     <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">batch_size</span>
-                                    <span className="font-bold text-blue-400">1</span>
+                                    <span className={`font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>1</span>
                                 </div>
                             </div>
                         </Node>
@@ -440,7 +553,7 @@ export function SubmitPromptPage() {
                                 <textarea
                                     value={formData.prompt}
                                     onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-                                    className="w-full h-32 bg-black/20 border border-white/10 resize-none p-4 text-sm outline-none rounded-lg focus:border-green-500/50 focus:bg-black/30 transition-all text-white placeholder:text-zinc-600"
+                                    className={`w-full h-32 ${isDark ? 'bg-black/20 border-white/10 focus:border-green-500/50 placeholder:text-zinc-600' : 'bg-zinc-100 border-zinc-200 focus:border-green-500/30 placeholder:text-zinc-400'} border resize-none p-4 text-sm outline-none rounded-lg transition-all text-inherit`}
                                     placeholder="photorealistic, visionary portrait..."
                                 />
                             </div>
@@ -464,7 +577,7 @@ export function SubmitPromptPage() {
                                 <textarea
                                     value={formData.negativePrompt}
                                     onChange={(e) => setFormData({ ...formData, negativePrompt: e.target.value })}
-                                    className="w-full h-32 bg-black/20 border border-white/10 resize-none p-4 text-sm outline-none rounded-lg focus:border-red-500/50 focus:bg-black/30 transition-all text-white placeholder:text-zinc-600"
+                                    className={`w-full h-32 ${isDark ? 'bg-black/20 border-white/10 focus:border-red-500/50 placeholder:text-zinc-600' : 'bg-zinc-100 border-zinc-200 focus:border-red-500/30 placeholder:text-zinc-400'} border resize-none p-4 text-sm outline-none rounded-lg transition-all text-inherit`}
                                     placeholder="ugly, boring, bad anatomy..."
                                 />
                             </div>
@@ -488,12 +601,12 @@ export function SubmitPromptPage() {
                                 <div className="space-y-4">
                                     <div
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="aspect-video bg-black/40 rounded-lg border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden hover:border-teal-500/50 hover:bg-black/60 transition-all group cursor-pointer relative"
+                                        className={`aspect-video rounded-lg border-2 border-dashed ${isDark ? 'bg-black/40 border-white/10 hover:border-teal-500/50 hover:bg-black/60' : 'bg-zinc-100 border-zinc-200 hover:border-teal-500/40 hover:bg-zinc-200/50'} flex items-center justify-center overflow-hidden transition-all group cursor-pointer relative`}
                                     >
                                         {uploading ? (
                                             <div className="flex flex-col items-center gap-2">
                                                 <Loader2 className="h-8 w-8 text-teal-500 animate-spin" />
-                                                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Uploading...</span>
+                                                <span className={`text-[10px] ${isDark ? 'text-zinc-400' : 'text-zinc-500'} font-bold uppercase tracking-widest`}>Uploading...</span>
                                             </div>
                                         ) : formData.image ? (
                                             <>
@@ -509,12 +622,12 @@ export function SubmitPromptPage() {
                                             </>
                                         ) : (
                                             <div className="text-center p-6 space-y-3 transition-transform group-hover:scale-110 duration-300">
-                                                <div className="bg-white/5 p-4 rounded-full inline-block border border-white/5 group-hover:border-teal-500/30 group-hover:bg-teal-500/10 transition-all">
-                                                    <ImagePlus className="h-8 w-8 text-zinc-600 group-hover:text-teal-500 transition-colors" />
+                                                <div className={`${isDark ? 'bg-white/5 border-white/5 group-hover:bg-teal-500/10' : 'bg-white border-zinc-200 group-hover:bg-teal-500/5'} p-4 rounded-full inline-block border group-hover:border-teal-500/30 transition-all`}>
+                                                    <ImagePlus className={`h-8 w-8 ${isDark ? 'text-zinc-600' : 'text-zinc-400'} group-hover:text-teal-500 transition-colors`} />
                                                 </div>
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-[10px] text-zinc-500 group-hover:text-teal-500 transition-colors font-bold uppercase tracking-widest">Select Image</span>
-                                                    <span className="text-[9px] text-zinc-600">JPG, PNG, WebP up to 10MB</span>
+                                                    <span className={`text-[10px] ${isDark ? 'text-zinc-500' : 'text-zinc-500'} group-hover:text-teal-500 transition-colors font-bold uppercase tracking-widest`}>Select Image</span>
+                                                    <span className="text-[9px] text-zinc-400">JPG, PNG, WebP up to 10MB</span>
                                                 </div>
                                             </div>
                                         )}
@@ -530,14 +643,14 @@ export function SubmitPromptPage() {
                                     />
 
                                     <div className="space-y-3">
-                                        <div className="bg-black/20 p-3 rounded-lg border border-white/10 focus-within:border-teal-500/50 transition-all">
+                                        <div className={`p-3 rounded-lg border ${isDark ? 'bg-black/20 border-white/10 focus-within:border-teal-500/50' : 'bg-zinc-100 border-zinc-200 focus-within:border-teal-500/40'} transition-all`}>
                                             <FieldLabel label="image_title" tooltip="Give your masterpiece a name." />
                                             <input
                                                 type="text"
                                                 placeholder="Ethereal Landscapes..."
                                                 value={formData.title}
                                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                                className="w-full bg-transparent outline-none font-bold text-sm text-white placeholder:text-zinc-700"
+                                                className={`w-full bg-transparent outline-none font-bold text-sm text-inherit ${isDark ? 'placeholder:text-zinc-700' : 'placeholder:text-zinc-400'}`}
                                             />
                                         </div>
 
@@ -545,22 +658,22 @@ export function SubmitPromptPage() {
                                             type="button"
                                             onClick={() => setFormData({ ...formData, isPremium: !formData.isPremium })}
                                             className={`flex items-center justify-between w-full p-4 rounded-xl border transition-all duration-300 ${formData.isPremium
-                                                ? 'bg-primary/20 border-primary/40 shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]'
-                                                : 'bg-black/20 border-white/10 hover:border-white/20'
+                                                ? isDark ? 'bg-primary/20 border-primary/40 shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]' : 'bg-primary/10 border-primary/20 shadow-lg'
+                                                : isDark ? 'bg-black/20 border-white/10 hover:border-white/20' : 'bg-zinc-100 border-zinc-200 hover:border-zinc-300'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-lg ${formData.isPremium ? 'bg-primary/20 text-primary' : 'bg-white/5 text-zinc-500'}`}>
+                                                <div className={`p-2 rounded-lg ${formData.isPremium ? 'bg-primary/20 text-primary' : isDark ? 'bg-white/5 text-zinc-500' : 'bg-white text-zinc-400 border border-zinc-100'}`}>
                                                     <Sparkles className="h-4 w-4" />
                                                 </div>
                                                 <div className="text-left">
                                                     <div className={`text-[10px] font-bold uppercase tracking-wider ${formData.isPremium ? 'text-primary' : 'text-zinc-500'}`}>
                                                         Premium Mode
                                                     </div>
-                                                    <div className="text-[9px] text-zinc-600">Exclusive feature list</div>
+                                                    <div className="text-[9px] text-zinc-500">Exclusive feature list</div>
                                                 </div>
                                             </div>
-                                            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${formData.isPremium ? 'bg-primary' : 'bg-white/10'}`}>
+                                            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${formData.isPremium ? 'bg-primary' : isDark ? 'bg-white/10' : 'bg-zinc-200'}`}>
                                                 <div className={`w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 ${formData.isPremium ? 'translate-x-4' : 'translate-x-0'}`} />
                                             </div>
                                         </button>
@@ -570,7 +683,7 @@ export function SubmitPromptPage() {
                                             disabled={isSubmitting}
                                             className={`w-full h-12 rounded-xl font-bold text-sm transition-all duration-300 shadow-xl ${isSubmitting
                                                 ? 'bg-zinc-800'
-                                                : 'bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] shadow-primary/20'
+                                                : 'bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] shadow-primary/20 text-white'
                                                 }`}
                                         >
                                             {isSubmitting ? (
