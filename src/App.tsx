@@ -7,6 +7,7 @@ import { HomePage } from './pages/Home'
 import { BrowsePage } from './pages/Browse'
 import { SignInPage } from './pages/SignIn'
 import { ProfilePage } from './pages/Profile'
+import { PricingPage } from './pages/Pricing'
 
 import { PromptDetailPage } from './pages/PromptDetail'
 import { SettingsPage } from './pages/Settings'
@@ -31,7 +32,6 @@ function App() {
       textColor: "var(--foreground)",
       links: [
         { label: "Explore", ariaLabel: "Explore Images", href: "/explore" },
-
       ]
     },
     {
@@ -43,7 +43,14 @@ function App() {
         { label: "About", ariaLabel: "About Us", href: "/about" }
       ]
     },
-
+    {
+      label: "Pricing",
+      bgColor: "var(--accent)",
+      textColor: "var(--accent-foreground)",
+      links: [
+        { label: "Plans", ariaLabel: "View Pricing Plans", href: "/pricing" }
+      ]
+    },
   ];
 
   return (
@@ -67,10 +74,12 @@ function App() {
                 <Route path="/prompt/:id" element={<PromptDetailPage />} />
                 <Route path="/sign-in" element={<SignInPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/pricing" element={<PricingPage />} />
 
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/submit" element={<SubmitPromptPage />} />
+                <Route path="/pricing" element={<AboutPage />} /> {/* Placeholder */}
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/faq" element={<FAQPage />} />
