@@ -5,22 +5,6 @@ import { Check, Mail } from "lucide-react";
 export function PricingPage() {
     const plans = [
         {
-            name: "Starter Pack",
-            price: "Free",
-            period: "forever",
-            description: "Perfect for casual creators starting their journey.",
-            features: [
-                "5 free premium prompt",
-                "Basic support",
-                "No watermarks",
-                "Community access",
-                "Standard processing"
-            ],
-            buttonText: "Join for Free",
-            popular: false,
-            comingSoon: false
-        },
-        {
             name: "Creator Pack",
             price: "Coming Soon",
             period: "",
@@ -34,8 +18,24 @@ export function PricingPage() {
                 "Premium prompts included"
             ],
             buttonText: "Coming Soon",
-            popular: true,
+            popular: false,
             comingSoon: true
+        },
+        {
+            name: "Starter Pack",
+            price: "Free",
+            period: "forever",
+            description: "Perfect for casual creators starting their journey.",
+            features: [
+                "5 free premium prompt",
+                "Basic support",
+                "No watermarks",
+                "Community access",
+                "Standard processing"
+            ],
+            buttonText: "Join for Free",
+            popular: true,
+            comingSoon: false
         },
         {
             name: "Pro Pack",
@@ -153,7 +153,7 @@ export function PricingPage() {
                 {/* Footer Note */}
                 <div className="mt-16 text-center text-muted-foreground/60 text-sm max-w-2xl mx-auto italic font-medium">
                     Note: Prompts are free to browse and share. Credits are used only when generating images
-                    (and future video features). All prices in USD. Taxes calculated at checkout.
+                    (and future video features). All prices in INR. Taxes calculated at checkout.
                 </div>
             </div>
         </div>
