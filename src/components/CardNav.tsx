@@ -10,9 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut } from 'lucide-react';
-// use your own icon import if react-icons is not available
-import { ArrowUpRight } from 'lucide-react';
+import { User, Settings, LogOut, ArrowUpRight, Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
+import { Switch } from '@/components/ui/switch';
 import './CardNav.css';
 
 type CardNavLink = {
@@ -54,6 +54,7 @@ const CardNav: React.FC<CardNavProps> = ({
   const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const navRef = useRef<HTMLDivElement | null>(null);
   const cardsRef = useRef<HTMLDivElement[]>([]);
@@ -165,6 +166,10 @@ const CardNav: React.FC<CardNavProps> = ({
     }
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
   const setCardRef = (i: number) => (el: HTMLDivElement | null) => {
     if (el) cardsRef.current[i] = el;
   };
@@ -257,6 +262,28 @@ const CardNav: React.FC<CardNavProps> = ({
               </div>
             </div>
           ))}
+
+          <div
+            className="nav-card appearance-card md:hidden"
+            style={{ backgroundColor: 'var(--secondary)', color: 'var(--secondary-foreground)' }}
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="nav-card-label">Appearance</div>
+              <div className="flex items-center gap-2">
+                {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+                <Switch
+                  checked={theme === 'dark'}
+                  onCheckedChange={toggleTheme}
+                  aria-label="Toggle dark mode"
+                />
+              </div>
+            </div>
+            <div className="nav-card-links mt-2">
+              <span className="text-xs opacity-70">
+                {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+              </span>
+            </div>
+          </div>
         </div>
       </nav>
     </div>
