@@ -98,7 +98,7 @@ export function PromptDetailPage() {
                         <div className="relative">
                             <div className="flex items-center justify-between mb-6">
                                 {prompt.isPremium && (
-                                    <span className="text-[10px] font-black px-4 py-1.5 rounded-full bg-primary/10 text-primary uppercase tracking-[0.2em] border border-primary/20 backdrop-blur-xl">
+                                    <span className="text-[10px] font-bold px-4 py-1.5 rounded-full bg-primary/10 text-primary uppercase tracking-[0.2em] border border-primary/20 backdrop-blur-xl">
                                         Premium Member
                                     </span>
                                 )}
@@ -108,7 +108,7 @@ export function PromptDetailPage() {
                                 </span>
                             </div>
 
-                            <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight tracking-tighter italic">
+                            <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-tight tracking-tight">
                                 {prompt.title.split(' ').map((word, i) => i === 0 ? <span key={i}>{word} </span> : <span key={i} className="highlight">{word} </span>)}
                             </h1>
 
@@ -127,9 +127,9 @@ export function PromptDetailPage() {
                         <div className="glass-card rounded-[32px] p-8 border-white/5 relative group overflow-hidden shadow-none">
                             <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 blur-[60px] -ml-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
 
-                            <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground/40 mb-6 font-black">Prompt Recipe</h3>
+                            <h3 className="text-xs uppercase tracking-[0.2em] text-muted-foreground/40 mb-6 font-bold">Prompt Recipe</h3>
                             <div className="relative">
-                                <p className="text-xl leading-relaxed text-foreground/80 font-medium font-mono min-h-[140px] italic">
+                                <p className="text-lg leading-relaxed text-foreground/80 font-normal font-mono min-h-[140px]">
                                     {prompt.prompt}
                                 </p>
                             </div>
@@ -138,13 +138,13 @@ export function PromptDetailPage() {
                                 <Button
                                     size="lg"
                                     onClick={handleCopy}
-                                    className="shimmer-effect rounded-full px-10 h-14 text-base font-black bg-foreground text-background hover:bg-foreground/90 transition-all hover:scale-[1.03] active:scale-95 shadow-none"
+                                    className="rounded-full px-10 h-12 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 transition-all hover:scale-[1.02] active:scale-95 shadow-none"
                                 >
                                     {copied ? (
                                         <>Copied!</>
                                     ) : (
                                         <>
-                                            <Copy className="h-5 w-5 mr-3" />
+                                            <Copy className="h-4 w-4 mr-3" />
                                             Copy Prompt
                                         </>
                                     )}
@@ -153,39 +153,39 @@ export function PromptDetailPage() {
                         </div>
 
                         <div className="glass-card rounded-[24px] p-8 border-white/5 shadow-none">
-                            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground/40 mb-6">Technical Schema</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/40 mb-6">Technical Schema</h3>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-y-8 gap-x-4 text-xs">
                                 <div className="space-y-1">
-                                    <span className="text-muted-foreground/60 font-bold uppercase block tracking-widest">Model</span>
-                                    <span className="text-foreground font-black text-sm">{prompt.model}</span>
+                                    <span className="text-muted-foreground/60 font-semibold uppercase block tracking-widest">Model</span>
+                                    <span className="text-foreground font-semibold text-sm">{prompt.model}</span>
                                 </div>
                                 <div className="space-y-1">
-                                    <span className="text-muted-foreground/60 font-bold uppercase block tracking-widest">Width</span>
-                                    <span className="text-foreground font-black text-sm">{prompt.width || 1024}px</span>
+                                    <span className="text-muted-foreground/60 font-semibold uppercase block tracking-widest">Width</span>
+                                    <span className="text-foreground font-semibold text-sm">{prompt.width || 1024}px</span>
                                 </div>
                                 <div className="space-y-1">
-                                    <span className="text-muted-foreground/60 font-bold uppercase block tracking-widest">Height</span>
-                                    <span className="text-foreground font-black text-sm">{prompt.height || 1024}px</span>
+                                    <span className="text-muted-foreground/60 font-semibold uppercase block tracking-widest">Height</span>
+                                    <span className="text-foreground font-semibold text-sm">{prompt.height || 1024}px</span>
                                 </div>
                                 <div className="space-y-1">
-                                    <span className="text-muted-foreground/60 font-bold uppercase block tracking-widest">Steps</span>
-                                    <span className="text-foreground font-black text-sm">{prompt.steps || 30}</span>
+                                    <span className="text-muted-foreground/60 font-semibold uppercase block tracking-widest">Steps</span>
+                                    <span className="text-foreground font-semibold text-sm">{prompt.steps || 30}</span>
                                 </div>
                                 <div className="space-y-1">
-                                    <span className="text-muted-foreground/60 font-bold uppercase block tracking-widest">CFG Scale</span>
-                                    <span className="text-foreground font-black text-sm">{prompt.cfgScale || 7.0}</span>
+                                    <span className="text-muted-foreground/60 font-semibold uppercase block tracking-widest">CFG Scale</span>
+                                    <span className="text-foreground font-semibold text-sm">{prompt.cfgScale || 7.0}</span>
                                 </div>
                                 <div className="space-y-1 col-span-2">
-                                    <span className="text-muted-foreground/60 font-bold uppercase block tracking-widest">Seed</span>
-                                    <span className="text-foreground font-black font-mono text-xs truncate max-w-full block">{prompt.seed || "Random"}</span>
+                                    <span className="text-muted-foreground/60 font-semibold uppercase block tracking-widest">Seed</span>
+                                    <span className="text-foreground font-semibold font-mono text-xs truncate max-w-full block">{prompt.seed || "Random"}</span>
                                 </div>
                             </div>
                         </div>
 
                         {prompt.negativePrompt && (
                             <div className="glass-card rounded-[24px] p-8 border-red-500/10 shadow-none">
-                                <h3 className="text-xs uppercase tracking-[0.3em] text-red-500/40 mb-4 font-black">Excluded Patterns</h3>
-                                <p className="text-sm leading-relaxed text-red-500/60 font-mono italic">
+                                <h3 className="text-xs uppercase tracking-[0.2em] text-red-500/40 mb-4 font-bold">Excluded Patterns</h3>
+                                <p className="text-sm leading-relaxed text-red-500/60 font-mono">
                                     {prompt.negativePrompt}
                                 </p>
                             </div>

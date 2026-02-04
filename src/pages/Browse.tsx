@@ -21,11 +21,19 @@ export function BrowsePage() {
     }, [])
 
     return (
-        <div className="min-h-screen py-20 px-4 mesh-gradient">
-            <div className="container mx-auto">
-                <div className="mb-16 text-center">
-                    <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter italic">Explore <span className="highlight">Gallery</span></h1>
-                    <p className="text-xl text-muted-foreground/60 max-w-2xl mx-auto font-medium">Discover the best prompts from the community.</p>
+        <div className="min-h-screen py-24 px-4 mesh-gradient overflow-x-hidden">
+            <div className="container mx-auto max-w-7xl">
+                <div className="mb-20 text-center relative">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/5 blur-[120px] pointer-events-none" />
+                    <span className="inline-block px-5 py-2 rounded-full border border-primary/20 text-[10px] font-bold tracking-[0.3em] uppercase mb-8 bg-primary/5 text-primary backdrop-blur-xl relative z-10">
+                        Visual Registry
+                    </span>
+                    <h1 className="text-5xl md:text-7xl font-bold mb-10 tracking-tight relative z-10">
+                        Explore <span className="highlight">Gallery.</span>
+                    </h1>
+                    <p className="text-xl md:text-2xl text-muted-foreground/60 max-w-3xl mx-auto font-medium relative z-10">
+                        Discover the neural peaks of human <span className="text-foreground">imagination.</span>
+                    </p>
                 </div>
 
                 {loading ? (

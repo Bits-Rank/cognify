@@ -34,7 +34,7 @@ export function HomePage() {
                     <p className="text-xs uppercase tracking-widest text-muted-foreground mb-6">
                         Community Prompt Studio & Gallery
                     </p>
-                    <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
+                    <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-8">
                         Share the <span className="highlight">prompts</span> behind the art.
                         Discover trending AI images and videos that inspire your next creation.
                     </h1>
@@ -99,17 +99,17 @@ export function HomePage() {
                                         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-5xl md:text-6xl font-black mb-6 tracking-tighter leading-tight italic">
+                                <h3 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight leading-tight">
                                     Be the first one to <span className="highlight">share!</span>
                                 </h3>
-                                <p className="text-muted-foreground text-xl mb-12 max-w-xl mx-auto leading-relaxed font-normal">
+                                <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto leading-relaxed">
                                     Our community gallery is waiting for its first masterpiece.
-                                    Join the elite circle of AI artists and inspire the world today.
+                                    Join the early circle of AI artists and inspire the world today.
                                 </p>
                                 <Link to="/submit">
-                                    <Button size="lg" className="shimmer-effect rounded-full px-12 h-16 text-lg font-bold bg-foreground text-background hover:bg-foreground/90 hover:scale-[1.02] active:scale-95 transition-all shadow-none">
+                                    <Button size="lg" className="rounded-full px-10 h-14 text-base font-semibold bg-foreground text-background hover:bg-foreground/90 transition-all shadow-none">
                                         Submit Your First Prompt
-                                        <ArrowRight className="ml-2 h-6 w-6" />
+                                        <ArrowRight className="ml-2 h-5 w-5" />
                                     </Button>
                                 </Link>
                             </div>
