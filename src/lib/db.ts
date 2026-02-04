@@ -429,24 +429,46 @@ export async function getSystemRecentActivity(limitCount = 10) {
     }
 }
 
-export async function getAllUsersList() {
+export async function getAllUsersList(filters?: { search?: string; status?: string }) {
     try {
-        const querySnapshot = await getDocs(collection(db, USERS_COLLECTION))
-        return querySnapshot.docs.map(doc => ({
+        let q = query(collection(db, USERS_COLLECTION));
+
+        // Note: Firestore doesn't support complex "contains" queries for strings easily
+        // so we fetch and filter locally for search, but apply status filters via query if possible
+        // For simplicity and matching the user request for "all data" search:
+        const querySnapshot = await getDocs(q);
+        let users = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
             createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-        }))
+        })) as any[];
+
+        if (filters?.search) {
+            const searchLower = filters.search.toLowerCase();
+            users = users.filter(u =>
+                (u.name || "").toLowerCase().includes(searchLower) ||
+                (u.email || "").toLowerCase().includes(searchLower) ||
+                (u.username || "").toLowerCase().includes(searchLower)
+            );
+        }
+
+        if (filters?.status) {
+            if (filters.status === 'blocked') users = users.filter(u => u.isBlocked);
+            if (filters.status === 'pro') users = users.filter(u => u.subscription === 'pro');
+            if (filters.status === 'verified') users = users.filter(u => u.isVerified);
+        }
+
+        return users.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
-        console.error("Error fetching all users:", error)
-        return []
+        console.error("Error fetching all users:", error);
+        return [];
     }
 }
 
-export async function getAllPromptsList() {
+export async function getAllPromptsList(filters?: { search?: string; status?: string }) {
     try {
         const querySnapshot = await getDocs(collection(db, PROMPTS_COLLECTION))
-        const allPrompts: any[] = []
+        let allPrompts: any[] = []
 
         querySnapshot.forEach(doc => {
             const data = doc.data()
@@ -456,17 +478,32 @@ export async function getAllPromptsList() {
                     allPrompts.push({
                         ...p,
                         authorDetails: {
-                            id: userInfo.authorId,
-                            name: userInfo.author,
-                            username: userInfo.authorUsername,
-                            avatar: userInfo.authorAvatar
+                            id: userInfo.authorId || doc.id,
+                            name: userInfo.author || "Anonymous",
+                            username: userInfo.authorUsername || "anonymous",
+                            avatar: userInfo.authorAvatar || ""
                         }
                     })
                 })
             }
         })
 
-        return allPrompts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        if (filters?.search) {
+            const searchLower = filters.search.toLowerCase();
+            allPrompts = allPrompts.filter(p =>
+                (p.title || "").toLowerCase().includes(searchLower) ||
+                (p.authorDetails.name || "").toLowerCase().includes(searchLower) ||
+                (p.authorDetails.username || "").toLowerCase().includes(searchLower)
+            );
+        }
+
+        if (filters?.status) {
+            if (filters.status === 'hidden') allPrompts = allPrompts.filter(p => p.isHidden);
+            if (filters.status === 'premium') allPrompts = allPrompts.filter(p => p.isPremium);
+            if (filters.status === 'visible') allPrompts = allPrompts.filter(p => !p.isHidden);
+        }
+
+        return allPrompts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
         console.error("Error fetching all prompts list:", error)
         return []
