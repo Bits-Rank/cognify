@@ -4,9 +4,9 @@ import { useAuth } from '@/lib/auth-context'
 import { useTheme } from '@/components/ThemeProvider'
 
 const StatCard = ({ title, value, icon: Icon, color, isDark }: any) => (
-    <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900/50 border-white/5' : 'bg-white border-zinc-200 shadow-sm'} group hover:border-primary/20 transition-all duration-300`}>
+    <div className={`p-6 rounded-3xl border ${isDark ? 'bg-card border-border/50' : 'bg-white border-zinc-200 shadow-sm'} group hover:border-primary/20 transition-all duration-300`}>
         <div className="flex items-start justify-between mb-4">
-            <div className={`p-3 rounded-2xl ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'} group-hover:scale-110 transition-transform`}>
+            <div className={`p-3 rounded-2xl ${isDark ? 'bg-zinc-900' : 'bg-zinc-100'} group-hover:scale-110 transition-transform`}>
                 <Icon className={`h-6 w-6`} style={{ color }} />
             </div>
             <div className={`px-2 py-1 rounded-full text-[10px] font-bold ${isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-100 text-green-600'}`}>
@@ -15,7 +15,7 @@ const StatCard = ({ title, value, icon: Icon, color, isDark }: any) => (
         </div>
         <div>
             <p className={`text-[10px] uppercase tracking-widest ${isDark ? 'text-zinc-500' : 'text-zinc-400'} font-bold mb-1`}>{title}</p>
-            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>{value}</h3>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-foreground' : 'text-zinc-900'}`}>{value}</h3>
         </div>
     </div>
 )
@@ -26,7 +26,7 @@ export const AdminDashboard = () => {
     const isDark = theme === 'dark'
 
     return (
-        <div className={`min-h-screen ${isDark ? 'bg-zinc-950 text-white' : 'bg-zinc-50 text-zinc-900'} p-8 font-sans`}>
+        <div className={`min-h-screen ${isDark ? 'bg-background text-foreground' : 'bg-zinc-50 text-zinc-900'} p-8 font-sans`}>
             <div className="max-w-7xl mx-auto">
                 <header className="flex items-center justify-between mb-12">
                     <div>
@@ -35,15 +35,6 @@ export const AdminDashboard = () => {
                             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Operational Terminal</span>
                         </div>
                         <h1 className="text-4xl font-bold tracking-tight">System Overview</h1>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-right">
-                            <p className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Administrator</p>
-                            <p className="font-bold text-sm">{user?.name}</p>
-                        </div>
-                        <div className={`w-12 h-12 rounded-2xl overflow-hidden border-2 border-primary/20`}>
-                            <img src={user?.avatar} alt="" className="w-full h-full object-cover" />
-                        </div>
                     </div>
                 </header>
 
@@ -55,7 +46,7 @@ export const AdminDashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className={`lg:col-span-2 p-8 rounded-[2.5rem] border ${isDark ? 'bg-zinc-900/30 border-white/5' : 'bg-white border-zinc-200'} min-h-[400px]`}>
+                    <div className={`lg:col-span-2 p-8 rounded-[2.5rem] border ${isDark ? 'bg-card/50 border-border/50' : 'bg-white border-zinc-200'} min-h-[400px]`}>
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-xl font-bold">Recent Activity</h2>
                             <button className="text-primary text-xs font-bold uppercase tracking-wider flex items-center gap-2 hover:opacity-80">
@@ -100,7 +91,7 @@ export const AdminDashboard = () => {
                             <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-primary/20 blur-3xl rounded-full" />
                         </div>
 
-                        <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-zinc-900/30 border-white/5' : 'bg-white border-zinc-200'}`}>
+                        <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-card/50 border-border/50' : 'bg-white border-zinc-200'}`}>
                             <h3 className="text-lg font-bold mb-6">Moderation Queue</h3>
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between p-4 rounded-2xl bg-orange-500/5 border border-orange-500/10">
