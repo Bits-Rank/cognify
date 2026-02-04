@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom"
 import { Sparkles, Loader2, Upload, HelpCircle, ImagePlus, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
-import { createPrompt, logUserActivity } from "@/lib/db"
-import { categories, aiModels } from "@/lib/data"
+import { createPrompt, logUserActivity, getAiModels } from "@/lib/db"
+import { categories, aiModels as defaultAiModels } from "@/lib/data"
 import { toast } from "react-toastify"
 import {
     Select,
@@ -82,22 +82,20 @@ const Tooltip = ({ text }: { text: string }) => {
     const { theme } = useTheme()
     const isDark = theme === "dark"
     return (
-        <div className="group/tip relative inline-flex items-center ml-1">
-            <HelpCircle className="h-3 w-3 text-zinc-600 hover:text-zinc-400 cursor-help transition-colors" />
-            <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 ${isDark ? 'bg-zinc-800 border-zinc-600 text-zinc-300' : 'bg-white border-zinc-200 text-zinc-600 shadow-lg'} border rounded-lg text-[11px] leading-relaxed w-64 opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all duration-200 z-50 pointer-events-none`}>
+        <div className="group/tip relative inline-flex items-center ml-2">
+            <HelpCircle className="h-3 w-3 text-muted-foreground/30 hover:text-primary cursor-help transition-colors" />
+            <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-3 ${isDark ? 'bg-zinc-900 border-white/5 text-muted-foreground/80' : 'bg-white border-zinc-200 text-zinc-600 shadow-2xl'} border rounded-2xl text-[10px] font-bold leading-relaxed w-64 opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all duration-300 z-50 pointer-events-none backdrop-blur-xl`}>
                 {text}
-                <div className={`absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent ${isDark ? 'border-t-zinc-600' : 'border-t-white'}`} />
+                <div className={`absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent ${isDark ? 'border-t-zinc-900' : 'border-t-white'}`} />
             </div>
         </div>
     )
 }
 
-// Field label with tooltip
 const FieldLabel = ({ label, tooltip }: { label: string; tooltip: string }) => {
-    const { theme } = useTheme()
     return (
-        <div className="flex items-center gap-1 mb-1">
-            <span className={`text-[10px] ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-400 font-medium'} uppercase`}>{label}</span>
+        <div className="flex items-center justify-between mb-3 px-1">
+            <span className="text-[9px] text-muted-foreground/40 font-bold uppercase tracking-[0.2em]">{label}</span>
             <Tooltip text={tooltip} />
         </div>
     )
@@ -130,7 +128,6 @@ const Node = memo(({ title, color, children, className = "", id, position, onDra
 
         document.body.classList.add('dragging-active')
 
-        // Cache connected wires and identify stationary/moving endpoints
         const connectedWires: { el: SVGPathElement, from: HTMLElement, to: HTMLElement, fromIsStorey: boolean, toIsStorey: boolean, staticRect?: DOMRect }[] = []
         const wires = document.querySelectorAll(`path[data-from^="${id}"], path[data-to^="${id}"]`)
 
@@ -151,7 +148,6 @@ const Node = memo(({ title, color, children, className = "", id, position, onDra
                     to: tEl,
                     fromIsStorey: fIsMoving,
                     toIsStorey: tIsMoving,
-                    // If the other end is stationary, cache its rect now
                     staticRect: !fIsMoving ? fEl.getBoundingClientRect() : (!tIsMoving ? tEl.getBoundingClientRect() : undefined)
                 })
             }
@@ -170,17 +166,13 @@ const Node = memo(({ title, color, children, className = "", id, position, onDra
                     nodeRef.current.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`
                 }
 
-                // Update wires with partial caching
                 for (let i = 0; i < connectedWires.length; i++) {
                     const { el, from, to, fromIsStorey, toIsStorey, staticRect } = connectedWires[i]
-
                     let x1, y1, x2, y2;
-
                     if (fromIsStorey) {
                         const fR = from.getBoundingClientRect()
                         x1 = fR.left + fR.width / 2 - canvasRect.left
                         y1 = fR.top + fR.height / 2 - canvasRect.top
-
                         const tR = staticRect || to.getBoundingClientRect()
                         x2 = tR.left + tR.width / 2 - canvasRect.left
                         y2 = tR.top + tR.height / 2 - canvasRect.top
@@ -188,12 +180,10 @@ const Node = memo(({ title, color, children, className = "", id, position, onDra
                         const fR = staticRect || from.getBoundingClientRect()
                         x1 = fR.left + fR.width / 2 - canvasRect.left
                         y1 = fR.top + fR.height / 2 - canvasRect.top
-
                         const tR = to.getBoundingClientRect()
                         x2 = tR.left + tR.width / 2 - canvasRect.left
                         y2 = tR.top + tR.height / 2 - canvasRect.top
                     }
-
                     const cx1 = x1 + Math.abs(x2 - x1) * 0.5
                     const cx2 = x2 - Math.abs(x2 - x1) * 0.5
                     el.setAttribute('d', `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`)
@@ -218,36 +208,34 @@ const Node = memo(({ title, color, children, className = "", id, position, onDra
         <div
             id={id}
             ref={nodeRef}
-            className={`rounded-[1.25rem] overflow-visible border ${isDark ? 'border-white/10 bg-zinc-900/60' : 'border-zinc-200 bg-white/80 shadow-xl'} ${className} hover:border-primary/20 transition-all duration-300 ${isDragging ? 'z-50 ring-2 ring-primary/20 scale-[1.01]' : 'z-10'} backdrop-blur-xl w-[calc(100%-48px)] mx-auto lg:w-[320px] lg:absolute touch-none relative group/node`}
+            className={`rounded-[2.5rem] overflow-visible border-white/5 border glass-card ${className} ${isDragging ? 'z-50 scale-[1.01]' : 'z-10'} w-[calc(100%-48px)] mx-auto lg:w-[320px] lg:absolute touch-none relative group/node shadow-none`}
             style={{
                 transform: window.innerWidth >= 1024 ? `translate3d(${position.x}px, ${position.y}px, 0)` : undefined,
                 cursor: window.innerWidth >= 1024 ? (isDragging ? 'grabbing' : 'default') : 'inherit',
                 userSelect: 'none',
                 willChange: 'transform',
-                backdropFilter: isDragging ? 'none' : 'blur(24px)',
-                boxShadow: isDragging ? 'none' : undefined,
-                transition: isDragging ? 'none' : 'all 0.3s ease'
+                transition: isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
         >
             <div
                 onMouseDown={handleMouseDown}
-                className={`px-5 py-3 flex items-center justify-between rounded-t-[1.25rem] lg:cursor-grab active:lg:cursor-grabbing border-b ${isDark ? 'border-white/5' : 'border-zinc-100'}`}
+                className={`px-8 py-4 flex items-center justify-between rounded-t-[2.5rem] lg:cursor-grab active:lg:cursor-grabbing border-b border-white/5`}
                 style={{
                     background: isDark
-                        ? `linear-gradient(to bottom right, ${color}25, ${color}10)`
-                        : `linear-gradient(to bottom right, ${color}15, ${color}05)`,
+                        ? `linear-gradient(to bottom right, ${color}15, transparent)`
+                        : `linear-gradient(to bottom right, ${color}10, transparent)`,
                 }}
             >
-                <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color, boxShadow: isDark ? `0 0 10px ${color}` : `none` }} />
-                    <span className={`font-bold text-[10px] tracking-[0.1em] uppercase ${isDark ? 'text-white/70' : 'text-zinc-600'}`}>{title}</span>
+                <div className="flex items-center gap-4">
+                    <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)]" style={{ backgroundColor: color }} />
+                    <span className={`font-bold text-[9px] tracking-[0.2em] uppercase ${isDark ? 'text-white/40' : 'text-zinc-400'}`}>{title}</span>
                 </div>
-                <div className="flex gap-1">
-                    <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-white/5' : 'bg-zinc-200'}`} />
-                    <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-white/5' : 'bg-zinc-200'}`} />
+                <div className="flex gap-1.5 opacity-20">
+                    <div className={`w-1.5 h-1.5 rounded-full bg-current`} />
+                    <div className={`w-1.5 h-1.5 rounded-full bg-current`} />
                 </div>
             </div>
-            <div className="p-5">{children}</div>
+            <div className="p-8">{children}</div>
         </div>
     )
 })
@@ -265,7 +253,7 @@ export function SubmitPromptPage() {
         isPremium: false,
         prompt: "",
         negativePrompt: "",
-        model: "midjourney" as AIModel,
+        model: "midjourney" as any,
         width: 1024,
         height: 1024,
         seed: Math.floor(Math.random() * 1000000000),
@@ -274,6 +262,32 @@ export function SubmitPromptPage() {
         sampler: "Euler a",
         scheduler: "Normal"
     })
+
+    const [availableModels, setAvailableModels] = useState<{ label: string; value: string }[]>([])
+    const [loadingModels, setLoadingModels] = useState(true)
+
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                const data = await getAiModels()
+                if (data.length > 0) {
+                    setAvailableModels(data)
+                    // If current model is not in new list, update it to the first one available
+                    if (!data.some(m => m.value === formData.model)) {
+                        setFormData(prev => ({ ...prev, model: data[0].value }))
+                    }
+                } else {
+                    setAvailableModels(defaultAiModels)
+                }
+            } catch (error) {
+                console.error("Failed to fetch models", error)
+                setAvailableModels(defaultAiModels)
+            } finally {
+                setLoadingModels(false)
+            }
+        }
+        fetchModels()
+    }, [])
 
     const [nodePositions, setNodePositions] = useState({
         checkpoint: { x: 20, y: 100 },
@@ -324,6 +338,29 @@ export function SubmitPromptPage() {
 
     const handleNodeDrag = useCallback((id: string, pos: { x: number, y: number }) => {
         setNodePositions(prev => ({ ...prev, [id]: pos }))
+    }, [])
+
+    // Clipboard Paste Support
+    useEffect(() => {
+        const handlePaste = (e: ClipboardEvent) => {
+            const items = e.clipboardData?.items
+            if (!items) return
+
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const file = items[i].getAsFile()
+                    if (file) {
+                        setSelectedFile(file)
+                        const previewUrl = URL.createObjectURL(file)
+                        setFormData(prev => ({ ...prev, image: previewUrl }))
+                        toast.success("Image pasted from clipboard")
+                    }
+                }
+            }
+        }
+
+        window.addEventListener("paste", handlePaste)
+        return () => window.removeEventListener("paste", handlePaste)
     }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -388,7 +425,7 @@ export function SubmitPromptPage() {
     }
 
     return (
-        <div className={`min-h-screen ${isDark ? 'text-zinc-200' : 'text-zinc-800'} p-6 font-mono text-sm`}>
+        <div className={`min-h-screen ${isDark ? 'text-zinc-200' : 'text-zinc-800'} py-20 px-6 font-mono text-sm mesh-gradient overflow-x-hidden`}>
             {/* Global Performance Overrides during Drag */}
             <style dangerouslySetInnerHTML={{
                 __html: `
@@ -401,9 +438,11 @@ export function SubmitPromptPage() {
                     pointer-events: auto !important;
                 }
                 body.dragging-active .backdrop-blur-xl,
-                body.dragging-active .backdrop-blur-sm {
+                body.dragging-active .backdrop-blur-sm,
+                body.dragging-active .glass-card {
                     backdrop-filter: none !important;
-                    background-color: ${isDark ? 'rgba(24, 24, 27, 0.95)' : 'rgba(255, 255, 255, 0.98)'} !important;
+                    background-color: ${isDark ? 'rgba(10, 10, 12, 0.98)' : 'rgba(255, 255, 255, 0.98)'} !important;
+                    border-color: rgba(255,255,255,0.02) !important;
                 }
                 body.dragging-active .shadow-xl,
                 body.dragging-active .shadow-2xl {
@@ -411,39 +450,17 @@ export function SubmitPromptPage() {
                 }
                 body.dragging-active path {
                     filter: none !important;
-                    opacity: 0.3 !important;
+                    opacity: 0.15 !important;
                 }
             `}} />
-            {/* Optimized Visual Gradients (No heavy blurs) */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-50">
-                <div className={`absolute top-[-20%] left-[-10%] w-[60%] h-[60%] ${isDark ? 'bg-purple-900/10' : 'bg-purple-100/30'} rounded-full`} style={{ background: `radial-gradient(circle, ${isDark ? 'rgba(168,85,247,0.08)' : 'rgba(168,85,247,0.03)'} 0%, transparent 70%)` }} />
-                <div className={`absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] ${isDark ? 'bg-blue-900/10' : 'bg-blue-100/30'} rounded-full`} style={{ background: `radial-gradient(circle, ${isDark ? 'rgba(59,130,246,0.08)' : 'rgba(59,130,246,0.03)'} 0%, transparent 70%)` }} />
-            </div>
 
-            {/* Background grid */}
-            <div
-                className={`fixed inset-0 pointer-events-none ${isDark ? 'opacity-[0.03]' : 'opacity-[0.05]'}`}
-                style={{
-                    backgroundImage: isDark
-                        ? 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)'
-                        : 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
-                    backgroundSize: '40px 40px'
-                }}
-            />
-            <div
-                className={`fixed inset-0 pointer-events-none ${isDark ? 'opacity-[0.015]' : 'opacity-[0.02]'}`}
-                style={{
-                    backgroundImage: isDark
-                        ? 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)'
-                        : 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
-                    backgroundSize: '10px 10px'
-                }}
-            />
-
-            <div className="flex justify-center mb-12 relative z-10">
-                <div className={`inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border ${isDark ? 'border-primary/20 bg-primary/5 text-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]' : 'border-primary/10 bg-primary/5 text-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.05)]'} font-bold uppercase tracking-[0.15em] text-[10px] backdrop-blur-sm`}>
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Submit Workflow
+            <div className="flex justify-center mb-16 relative z-10">
+                <div className="text-center">
+                    <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">Submit <span className="highlight">Workflow</span></h1>
+                    <div className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-primary/20 bg-primary/5 text-primary font-bold uppercase tracking-[0.2em] text-[10px] backdrop-blur-xl group hover:scale-105 transition-all">
+                        <Sparkles className="h-4 w-4" />
+                        Relay Node Protocol
+                    </div>
                 </div>
             </div>
 
@@ -477,17 +494,21 @@ export function SubmitPromptPage() {
                                     <FieldLabel label="ckpt_name" tooltip="The AI model/checkpoint used to generate the image." />
                                     <Select
                                         value={formData.model}
-                                        onValueChange={(value) => setFormData({ ...formData, model: value as AIModel })}
+                                        onValueChange={(value) => setFormData({ ...formData, model: value })}
                                     >
                                         <SelectTrigger className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-800'} rounded-lg h-10 text-xs hover:border-primary/30 transition-all`}>
-                                            <SelectValue placeholder="Select model" />
+                                            <SelectValue placeholder={loadingModels ? "Connecting..." : "Select model"} />
                                         </SelectTrigger>
                                         <SelectContent className={`${isDark ? 'bg-zinc-900/90 border-white/10 text-zinc-200' : 'bg-white border-zinc-200 text-zinc-800'} backdrop-blur-xl`}>
-                                            {aiModels.map(m => (
-                                                <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-primary/20 focus:text-primary cursor-pointer py-2">
-                                                    {m.label}
-                                                </SelectItem>
-                                            ))}
+                                            {loadingModels ? (
+                                                <div className="p-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 animate-pulse">Syncing models...</div>
+                                            ) : (
+                                                availableModels.map(m => (
+                                                    <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-primary/20 focus:text-primary cursor-pointer py-2">
+                                                        {m.label}
+                                                    </SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -648,57 +669,57 @@ export function SubmitPromptPage() {
                                         disabled={uploading}
                                     />
 
-                                    <div className="space-y-3">
-                                        <div className={`p-3 rounded-lg border ${isDark ? 'bg-black/20 border-white/10 focus-within:border-teal-500/50' : 'bg-zinc-100 border-zinc-200 focus-within:border-teal-500/40'} transition-all`}>
+                                    <div className="space-y-4">
+                                        <div className={`p-5 rounded-3xl border ${isDark ? 'bg-white/[0.01] border-white/5 focus-within:border-teal-500/30' : 'bg-zinc-50 border-zinc-200 focus-within:border-teal-500/20'} transition-all`}>
                                             <FieldLabel label="image_title" tooltip="Give your masterpiece a name." />
                                             <input
                                                 type="text"
                                                 placeholder="Ethereal Landscapes..."
                                                 value={formData.title}
                                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                                className={`w-full bg-transparent outline-none font-bold text-sm text-inherit ${isDark ? 'placeholder:text-zinc-700' : 'placeholder:text-zinc-400'}`}
+                                                className={`w-full bg-transparent outline-none font-semibold text-base text-inherit ${isDark ? 'placeholder:text-zinc-800' : 'placeholder:text-zinc-300'}`}
                                             />
                                         </div>
 
                                         <button
                                             type="button"
                                             onClick={() => setFormData({ ...formData, isPremium: !formData.isPremium })}
-                                            className={`flex items-center justify-between w-full p-4 rounded-xl border transition-all duration-300 ${formData.isPremium
-                                                ? isDark ? 'bg-primary/20 border-primary/40 shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]' : 'bg-primary/10 border-primary/20 shadow-lg'
-                                                : isDark ? 'bg-black/20 border-white/10 hover:border-white/20' : 'bg-zinc-100 border-zinc-200 hover:border-zinc-300'
-                                                }`}
+                                            className={`flex items-center justify-between w-full p-5 rounded-[2rem] border transition-all duration-500 ${formData.isPremium
+                                                ? isDark ? 'border-primary/20 bg-primary/5' : 'bg-primary/5 border-primary/20'
+                                                : isDark ? 'bg-white/[0.02] border-white/5 hover:border-white/10' : 'bg-zinc-50 border-zinc-200 hover:border-zinc-300'
+                                                } glass-card shadow-none`}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-lg ${formData.isPremium ? 'bg-primary/20 text-primary' : isDark ? 'bg-white/5 text-zinc-500' : 'bg-white text-zinc-400 border border-zinc-100'}`}>
-                                                    <Sparkles className="h-4 w-4" />
+                                            <div className="flex items-center gap-4">
+                                                <div className={`p-2.5 rounded-xl ${formData.isPremium ? 'bg-primary/20 text-primary' : isDark ? 'bg-white/5 text-zinc-600' : 'bg-white text-zinc-400 border border-zinc-100'}`}>
+                                                    <Sparkles className="h-5 w-5" />
                                                 </div>
                                                 <div className="text-left">
-                                                    <div className={`text-[10px] font-bold uppercase tracking-wider ${formData.isPremium ? 'text-primary' : 'text-zinc-500'}`}>
+                                                    <div className={`text-[10px] font-bold uppercase tracking-[0.2em] ${formData.isPremium ? 'text-primary' : 'text-zinc-500'}`}>
                                                         Premium Mode
                                                     </div>
-                                                    <div className="text-[9px] text-zinc-500">Exclusive feature list</div>
+                                                    <div className="text-[9px] text-muted-foreground/40 font-semibold uppercase tracking-widest mt-0.5">Relay Status</div>
                                                 </div>
                                             </div>
-                                            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${formData.isPremium ? 'bg-primary' : isDark ? 'bg-white/10' : 'bg-zinc-200'}`}>
-                                                <div className={`w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 ${formData.isPremium ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            <div className={`w-12 h-7 rounded-full p-1.5 transition-colors duration-500 ${formData.isPremium ? 'bg-primary' : isDark ? 'bg-white/10' : 'bg-zinc-200'}`}>
+                                                <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-500 ${formData.isPremium ? 'translate-x-5 shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'translate-x-0'}`} />
                                             </div>
                                         </button>
 
                                         <Button
                                             type="submit"
                                             disabled={isSubmitting}
-                                            className={`w-full h-12 rounded-xl font-bold text-sm transition-all duration-300 shadow-xl ${isSubmitting
-                                                ? 'bg-zinc-800'
-                                                : 'bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] shadow-primary/20 text-white'
+                                            className={`w-full h-14 rounded-full font-semibold text-base transition-all duration-500 shadow-none ${isSubmitting
+                                                ? 'bg-zinc-900 border-white/5 opacity-50'
+                                                : 'bg-foreground text-background hover:bg-foreground/90 hover:scale-[1.01] active:scale-95'
                                                 }`}
                                         >
                                             {isSubmitting ? (
-                                                <div className="flex items-center gap-2">
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                    <span>Processing...</span>
+                                                <div className="flex items-center gap-3">
+                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                    <span className="tracking-tight">Initializing...</span>
                                                 </div>
                                             ) : (
-                                                "Queue Prompt"
+                                                <span className="tracking-tight">Queue Relay</span>
                                             )}
                                         </Button>
                                     </div>
