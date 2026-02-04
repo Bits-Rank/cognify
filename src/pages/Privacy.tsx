@@ -3,165 +3,106 @@ import { ArrowRight } from "lucide-react"
 
 export function PrivacyPage() {
     return (
-        <div className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-16 md:py-24 max-w-7xl">
+        <div className="min-h-screen py-24 px-4 mesh-gradient">
+            <div className="container mx-auto px-4 max-w-7xl">
                 {/* Header */}
-                <div className="mb-16 max-w-3xl">
-                    <span className="inline-block px-4 py-1.5 rounded-full border border-border text-xs font-bold tracking-widest uppercase mb-6 bg-background">
-                        Privacy Policy
+                <div className="mb-20 max-w-4xl">
+                    <span className="inline-block px-5 py-2 rounded-full border border-primary/20 text-[10px] font-bold tracking-[0.3em] uppercase mb-8 bg-primary/5 text-primary backdrop-blur-xl">
+                        Protocol v1.2
                     </span>
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8 text-foreground">
-                        Your privacy matters to us.
+                    <h1 className="text-4xl md:text-7xl font-bold tracking-tight mb-10 text-foreground">
+                        Your <span className="highlight">privacy</span> matters.
                     </h1>
-                    <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed">
-                        This Privacy Policy explains how Banana Prompts collects, uses, and protects your personal information. We believe in transparency and giving you control over your data.
+                    <p className="text-lg md:text-xl text-muted-foreground/60 leading-relaxed font-medium border-l-2 border-primary/20 pl-8 mb-10">
+                        This Privacy Policy explains how Cognify collects, uses, and protects your personal information. We believe in transparency and giving you control over your data.
                     </p>
-                    <p className="mt-8 text-sm text-muted-foreground">
-                        Effective date: October 12, 2025
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40">
+                        Last Synchronized: October 12, 2025
                     </p>
                 </div>
 
                 {/* Content Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                     {/* Information We Collect */}
-                    <div className="bg-card text-card-foreground rounded-[2rem] p-8 md:p-10 border border-border/50 shadow-sm">
-                        <h2 className="text-2xl font-bold mb-6">Information We Collect</h2>
-                        <p className="text-muted-foreground mb-6 leading-relaxed">
-                            When you use Banana Prompts, we collect information to provide and improve our services. This includes information you provide directly and data collected automatically.
-                        </p>
-                        <ul className="space-y-4 text-muted-foreground">
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Account information: email address, username, and authentication credentials (via Google OAuth)</span>
+                    <div className="glass-card rounded-[40px] p-10 border-white/5 shadow-none relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32 group-hover:bg-primary/10 transition-all duration-700" />
+                        <h2 className="text-sm uppercase tracking-[0.2em] font-bold text-muted-foreground/40 mb-8 relative z-10">Data Acquisition</h2>
+                        <ul className="space-y-6 text-muted-foreground/80 relative z-10 font-medium">
+                            <li className="flex gap-4">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shadow-sm flex-shrink-0" />
+                                <span>Account relay: email, username, and OAuth tokens</span>
                             </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Content you submit: AI-generated images, prompts, tags, and metadata</span>
+                            <li className="flex gap-4">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shadow-sm flex-shrink-0" />
+                                <span>Neural content: images, prompts, and metadata</span>
                             </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Usage data: pages visited, features used, and interactions with content</span>
+                            <li className="flex gap-4">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shadow-sm flex-shrink-0" />
+                                <span>usage harmonics: interactions and feature patterns</span>
                             </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Device information: browser type, IP address, and operating system</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Payment information: processed securely through Creem (we do not store credit card details)</span>
+                            <li className="flex gap-4">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shadow-sm flex-shrink-0" />
+                                <span>Relay intel: browser, IP, and hardware schema</span>
                             </li>
                         </ul>
                     </div>
 
                     {/* How We Use Your Information */}
-                    <div className="bg-card text-card-foreground rounded-[2rem] p-8 md:p-10 border border-border/50 shadow-sm">
-                        <h2 className="text-2xl font-bold mb-6">How We Use Your Information</h2>
-                        <p className="text-muted-foreground mb-6 leading-relaxed">
-                            We use the information we collect to operate, maintain, and improve Banana Prompts. Your data helps us provide a better experience for the entire community.
-                        </p>
-                        <ul className="space-y-4 text-muted-foreground">
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Authentication and account management</span>
+                    <div className="glass-card rounded-[40px] p-10 border-white/5 shadow-none relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32 group-hover:bg-primary/10 transition-all duration-700" />
+                        <h2 className="text-sm uppercase tracking-[0.2em] font-bold text-muted-foreground/40 mb-8 relative z-10">Usage Protocol</h2>
+                        <ul className="space-y-6 text-muted-foreground/80 relative z-10 font-medium">
+                            <li className="flex gap-4">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shadow-sm flex-shrink-0" />
+                                <span>Authentication and secure relay management</span>
                             </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Storing and displaying your submitted content in the gallery</span>
+                            <li className="flex gap-4">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shadow-sm flex-shrink-0" />
+                                <span>Global gallery synchronization and display</span>
                             </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Processing payments and managing subscriptions</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Analyzing usage patterns to improve features and performance</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Communicating important updates about the service</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Preventing abuse, spam, and security threats</span>
+                            <li className="flex gap-4">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shadow-sm flex-shrink-0" />
+                                <span>Vault security and abuse prevention</span>
                             </li>
                         </ul>
                     </div>
 
                     {/* Third-Party Services */}
-                    <div className="bg-card text-card-foreground rounded-[2rem] p-8 md:p-10 border border-border/50 shadow-sm">
-                        <h2 className="text-2xl font-bold mb-6">Third-Party Services</h2>
-                        <p className="text-muted-foreground mb-6 leading-relaxed">
-                            Banana Prompts integrates with trusted third-party services to provide core functionality. These services have their own privacy policies and data practices.
-                        </p>
-                        <ul className="space-y-4 text-muted-foreground">
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Supabase: Authentication, database, and user management</span>
+                    <div className="glass-card rounded-[40px] p-10 border-white/5 shadow-none relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32 group-hover:bg-primary/10 transition-all duration-700" />
+                        <h2 className="text-sm uppercase tracking-[0.2em] font-bold text-muted-foreground/40 mb-8 relative z-10">External Nodes</h2>
+                        <ul className="space-y-6 text-muted-foreground/80 relative z-10 font-medium">
+                            <li className="flex gap-4">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shadow-sm flex-shrink-0" />
+                                <span>Supabase: Identity and neural database</span>
                             </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Cloudflare R2: Image storage and content delivery</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Creem: Payment processing and subscription management</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>OpenAI: AI video generation via Sora 2 API</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Vercel: Web hosting and infrastructure</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Data Sharing and Disclosure */}
-                    <div className="bg-card text-card-foreground rounded-[2rem] p-8 md:p-10 border border-border/50 shadow-sm">
-                        <h2 className="text-2xl font-bold mb-6">Data Sharing and Disclosure</h2>
-                        <p className="text-muted-foreground mb-6 leading-relaxed">
-                            We do not sell your personal information. We only share data in limited circumstances necessary to operate the service or comply with legal obligations.
-                        </p>
-                        <ul className="space-y-4 text-muted-foreground">
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Public content: Images and prompts you submit are visible to all users</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Service providers: Third-party services listed above that help operate the platform</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Legal compliance: When required by law or to protect our rights and users</span>
-                            </li>
-                            <li className="flex gap-3">
-                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span>Business transfers: In the event of a merger, acquisition, or sale of assets</span>
+                            <li className="flex gap-4">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shadow-sm flex-shrink-0" />
+                                <span>Cloudinary: Image relay and optimization</span>
                             </li>
                         </ul>
                     </div>
 
                     {/* Contact Us (Small) */}
-                    <div className="bg-card text-card-foreground rounded-[2rem] p-8 md:p-10 border border-border/50 shadow-sm">
-                        <h2 className="text-2xl font-bold mb-4">Contact Us</h2>
-                        <p className="text-muted-foreground mb-6 leading-relaxed">
-                            If you have questions about this Privacy Policy or how we handle your data, please reach out to us. We're committed to addressing your privacy concerns.
+                    <div className="glass-card rounded-[40px] p-10 border-white/5 shadow-none relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32 group-hover:bg-primary/10 transition-all duration-700" />
+                        <h2 className="text-sm uppercase tracking-[0.2em] font-bold text-muted-foreground/40 mb-8 relative z-10">Terminal</h2>
+                        <p className="text-muted-foreground/60 mb-10 leading-relaxed font-medium">
+                            If you have questions about this Privacy Policy or how we handle your data, please reach out via the secure channel.
                         </p>
-                        <a href="mailto:support@cognify.com" className="inline-flex items-center text-primary font-bold hover:opacity-80 transition-opacity">
-                            Email support@cognify.com <ArrowRight className="ml-2 h-4 w-4" />
+                        <a href="mailto:support@cognify.xyz" className="inline-flex items-center px-8 h-10 rounded-full bg-foreground text-background font-bold text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">
+                            support@cognify.xyz <ArrowRight className="ml-3 h-4 w-4" />
                         </a>
                     </div>
 
                 </div>
 
                 {/* Quick Summary (Wide) */}
-                <div className="bg-card text-card-foreground rounded-[2rem] p-8 md:p-10 border border-border/50 shadow-sm mt-6">
-                    <h2 className="text-2xl font-bold mb-4">Quick Summary</h2>
-                    <p className="text-muted-foreground leading-relaxed">
-                        We collect information necessary to operate Banana Prompts and provide you with a great experience. Your submitted content is public, but we never sell your personal information. You can request access, correction, or deletion of your information at any time. Questions? Contact us at support@cognify.com.
+                <div className="glass-card rounded-[40px] p-12 border-white/5 shadow-none mt-8 relative overflow-hidden">
+                    <h2 className="text-sm uppercase tracking-[0.2em] font-bold text-primary/40 mb-6">Relay Overview</h2>
+                    <p className="text-lg text-muted-foreground/60 leading-relaxed font-medium">
+                        We collect information necessary to operate Cognify and provide you with a great experience. Your submitted content is public, but we never sell your personal information. Questions? Contact us at support@cognify.xyz.
                     </p>
                 </div>
 

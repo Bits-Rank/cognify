@@ -34,7 +34,7 @@ export function HomePage() {
                     <p className="text-xs uppercase tracking-widest text-muted-foreground mb-6">
                         Community Prompt Studio & Gallery
                     </p>
-                    <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
+                    <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-8">
                         Share the <span className="highlight">prompts</span> behind the art.
                         Discover trending AI images and videos that inspire your next creation.
                     </h1>
@@ -83,32 +83,36 @@ export function HomePage() {
 
                     {/* Fallback if no prompts */}
                     {!loading && prompts.length === 0 && (
-                        <div className="text-center py-12 bg-card rounded-lg border">
-                            <h3 className="text-xl font-semibold mb-4">Ready to explore amazing prompts?</h3>
-                            {!user ? (
-                                <div>
-                                    <p className="text-muted-foreground mb-6">
-                                        Sign in to view the community gallery and discover trending AI prompts.
-                                    </p>
-                                    <div className="flex gap-4 justify-center">
-                                        <Link to="/sign-in">
-                                            <Button>Sign In to View Prompts</Button>
-                                        </Link>
-                                        <Link to="/seed">
-                                            <Button variant="outline">Seed Database</Button>
-                                        </Link>
-                                    </div>
+                        <div className="relative py-32 px-10 glass-card rounded-[40px] border border-white/5 overflow-hidden group max-w-4xl mx-auto shadow-none">
+                            <div className="relative z-10 text-center flex flex-col items-center">
+                                <div className="mb-12 text-primary/30">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-24 w-24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                                    </svg>
                                 </div>
-                            ) : (
-                                <div>
-                                    <p className="text-muted-foreground mb-6">
-                                        No prompts in the database yet. Add some sample data to get started!
-                                    </p>
-                                    <Link to="/seed">
-                                        <Button>Add Sample Prompts</Button>
-                                    </Link>
-                                </div>
-                            )}
+                                <h3 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight leading-tight">
+                                    Be the first one to <span className="highlight">share!</span>
+                                </h3>
+                                <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+                                    Our community gallery is waiting for its first masterpiece.
+                                    Join the early circle of AI artists and inspire the world today.
+                                </p>
+                                <Link to="/submit">
+                                    <Button size="lg" className="rounded-full px-10 h-14 text-base font-semibold bg-foreground text-background hover:bg-foreground/90 transition-all shadow-none">
+                                        Submit Your First Prompt
+                                        <ArrowRight className="ml-2 h-5 w-5" />
+                                    </Button>
+                                </Link>
+                            </div>
                         </div>
                     )}
 
