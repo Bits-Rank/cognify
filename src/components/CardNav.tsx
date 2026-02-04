@@ -1,5 +1,5 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useLayoutEffect, useRef, useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -56,6 +56,7 @@ const CardNav: React.FC<CardNavProps> = ({
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const navRef = useRef<HTMLDivElement | null>(null);
   const cardsRef = useRef<HTMLDivElement[]>([]);
   const tlRef = useRef<gsap.core.Timeline | null>(null);
@@ -152,6 +153,38 @@ const CardNav: React.FC<CardNavProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [isExpanded]);
 
+  const closeMenu = () => {
+    const tl = tlRef.current;
+    if (!tl || !isExpanded) return;
+    setIsHamburgerOpen(false);
+    tl.eventCallback('onReverseComplete', () => setIsExpanded(false));
+    tl.reverse();
+  };
+
+  useEffect(() => {
+    if (isExpanded) {
+      closeMenu();
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        closeMenu();
+      }
+    };
+
+    if (isExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isExpanded]);
+
   const toggleMenu = () => {
     const tl = tlRef.current;
     if (!tl) return;
@@ -160,9 +193,7 @@ const CardNav: React.FC<CardNavProps> = ({
       setIsExpanded(true);
       tl.play(0);
     } else {
-      setIsHamburgerOpen(false);
-      tl.eventCallback('onReverseComplete', () => setIsExpanded(false));
-      tl.reverse();
+      closeMenu();
     }
   };
 
@@ -277,11 +308,6 @@ const CardNav: React.FC<CardNavProps> = ({
                   aria-label="Toggle dark mode"
                 />
               </div>
-            </div>
-            <div className="nav-card-links mt-2">
-              <span className="text-xs opacity-70">
-                {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
-              </span>
             </div>
           </div>
         </div>
