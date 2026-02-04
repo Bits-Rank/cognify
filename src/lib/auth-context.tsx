@@ -39,12 +39,15 @@ export interface User {
     }
     isTwoFactorEnabled: boolean
     twoFactorSecret?: string
+    role?: 'admin' | 'user'
+    isAdmin: boolean
 }
 
 interface AuthContextType {
     user: User | null
     firebaseUser: FirebaseUser | null
     isLoading: boolean
+    isAdmin: boolean
     pendingTwoFactorAuth: boolean
     signInWithGoogle: () => Promise<void>
     signOut: () => Promise<void>
@@ -64,20 +67,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [isAdmin, setIsAdmin] = useState(false)
     const [pendingTwoFactorAuth, setPendingTwoFactorAuth] = useState(false)
-    const [pendingUserData, setPendingUserData] = useState<{ user: User, firebaseUser: FirebaseUser } | null>(null)
+    const [pendingUserData, setPendingUserData] = useState<{ user: User, firebaseUser: FirebaseUser, isAdmin: boolean } | null>(null)
     const dispatch = useDispatch()
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
             if (authUser) {
-                // Fetch/create Firestore doc to check 2FA status
-                const userRef = doc(db, "users", authUser.uid)
-
                 try {
                     // Add a small delay to ensure Firebase is ready
                     await new Promise(resolve => setTimeout(resolve, 500))
 
+                    // 1. Check Admin Status First (against 'admin_panel' collection)
+                    const adminRef = doc(db, "admin_panel", authUser.uid)
+                    const adminSnap = await getDoc(adminRef)
+                    const userIsAdmin = adminSnap.exists()
+
+                    // 2. Fetch/create Firestore user doc
+                    const userRef = doc(db, "users", authUser.uid)
                     const docSnap = await getDoc(userRef)
 
                     if (docSnap.exists()) {
@@ -96,28 +104,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             location: data.location || "",
                             socials: data.socials || {},
                             isTwoFactorEnabled: data.isTwoFactorEnabled || false,
-                            twoFactorSecret: data.twoFactorSecret || ""
+                            twoFactorSecret: data.twoFactorSecret || "",
+                            role: userIsAdmin ? 'admin' : 'user',
+                            isAdmin: userIsAdmin
                         }
 
                         // Check if 2FA is enabled
                         if (fetchedUser.isTwoFactorEnabled && fetchedUser.twoFactorSecret) {
-                            // Hold user in pending state until 2FA is verified
-                            setPendingUserData({ user: fetchedUser, firebaseUser: authUser })
+                            setPendingUserData({ user: fetchedUser, firebaseUser: authUser, isAdmin: userIsAdmin })
                             setPendingTwoFactorAuth(true)
                             setFirebaseUser(authUser)
                             setIsLoading(false)
                         } else {
-                            // No 2FA, proceed normally
                             setFirebaseUser(authUser)
                             setUser(fetchedUser)
+                            setIsAdmin(userIsAdmin)
                             dispatch(setReduxUser(fetchedUser))
                             setIsLoading(false)
-
-                            // Log login activity if not checking 2FA
-                            logUserActivity(authUser.uid, "login", "Logged in via Google")
+                            logUserActivity(authUser.uid, "login", `Logged in via Google ${userIsAdmin ? '(Admin)' : ''}`)
                         }
                     } else {
-                        // Create user doc if it doesn't exist (first google login)
+                        // Create user doc if it doesn't exist
                         const username = authUser.displayName
                             ? authUser.displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
                             : authUser.email?.split('@')[0] || `user_${authUser.uid.slice(0, 8)}`
@@ -137,9 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             isTwoFactorEnabled: false
                         }
                         await setDoc(userRef, newUserData)
-                        console.log("✅ User document created successfully")
 
-                        // New user, no 2FA, proceed normally
                         const newUser: User = {
                             id: authUser.uid,
                             email: authUser.email || "",
@@ -153,39 +158,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             slogan: "",
                             location: "",
                             socials: {},
-                            isTwoFactorEnabled: false
+                            isTwoFactorEnabled: false,
+                            role: userIsAdmin ? 'admin' : 'user',
+                            isAdmin: userIsAdmin
                         }
                         setFirebaseUser(authUser)
                         setUser(newUser)
+                        setIsAdmin(userIsAdmin)
                         dispatch(setReduxUser(newUser))
                         setIsLoading(false)
                     }
                 } catch (error) {
-                    console.error("Error fetching/creating user doc:", error)
-                    // On error, allow basic auth without 2FA check
-                    const tempUser: User = {
+                    console.error("Error in auth flow:", error)
+                    // Fallback to basic auth on error
+                    const tempUser = {
                         id: authUser.uid,
                         email: authUser.email || "",
                         name: authUser.displayName || "User",
-                        avatar: authUser.photoURL || undefined,
-                        subscription: "free",
+                        isAdmin: false,
+                        subscription: "free" as SubscriptionTier,
                         promptsUnlocked: [],
                         generationsUsed: 0,
                         generationsReset: new Date().toISOString(),
                         createdAt: new Date().toISOString(),
-                        slogan: "",
-                        location: "",
-                        socials: {},
                         isTwoFactorEnabled: false
-                    }
+                    } as User
                     setFirebaseUser(authUser)
                     setUser(tempUser)
-                    dispatch(setReduxUser(tempUser))
+                    setIsAdmin(false)
                     setIsLoading(false)
                 }
             } else {
                 setUser(null)
                 setFirebaseUser(null)
+                setIsAdmin(false)
                 setPendingTwoFactorAuth(false)
                 setPendingUserData(null)
                 dispatch(clearReduxUser())
@@ -233,12 +239,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (isValid) {
                 // Code is valid, complete the login
                 setUser(pendingUser)
+                setIsAdmin(pendingUserData.isAdmin)
                 dispatch(setReduxUser(pendingUser))
                 setPendingTwoFactorAuth(false)
                 setPendingUserData(null)
 
                 // Log 2FA login activity
-                logUserActivity(pendingUser.id, "login", "Logged in with 2FA verification")
+                logUserActivity(pendingUser.id, "login", `Logged in with 2FA verification ${pendingUserData.isAdmin ? '(Admin)' : ''}`)
 
                 return true
             } else {
@@ -307,6 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 user,
                 firebaseUser,
                 isLoading,
+                isAdmin,
                 pendingTwoFactorAuth,
                 signInWithGoogle,
                 signOut,

@@ -22,6 +22,10 @@ import 'react-toastify/dist/ReactToastify.css'
 import './index.css'
 import { ThemeProvider } from './components/ThemeProvider'
 import { TwoFactorModal } from './components/TwoFactorModal'
+import { AdminGuard } from './components/AdminGuard'
+import { AdminDashboard } from './pages/admin/AdminDashboard'
+import { UserManagement } from './pages/admin/UserManagement'
+import { PromptManagement } from './pages/admin/PromptManagement'
 
 
 function App() {
@@ -84,6 +88,32 @@ function App() {
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/faq" element={<FAQPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+
+                {/* Admin Routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminGuard>
+                      <AdminDashboard />
+                    </AdminGuard>
+                  }
+                />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <AdminGuard>
+                      <UserManagement />
+                    </AdminGuard>
+                  }
+                />
+                <Route
+                  path="/admin/prompts"
+                  element={
+                    <AdminGuard>
+                      <PromptManagement />
+                    </AdminGuard>
+                  }
+                />
               </Routes>
             </main>
             <Footer />

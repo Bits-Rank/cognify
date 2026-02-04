@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut, ArrowUpRight, Moon, Sun } from 'lucide-react';
+import { User, Settings, LogOut, ArrowUpRight, Moon, Sun, ShieldCheck } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { Switch } from '@/components/ui/switch';
 import './CardNav.css';
@@ -53,7 +53,7 @@ const CardNav: React.FC<CardNavProps> = ({
 }) => {
   const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -250,6 +250,12 @@ const CardNav: React.FC<CardNavProps> = ({
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer rounded-lg focus:bg-primary/10 focus:text-primary py-2.5">
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      <span className="font-bold">Admin Panel</span>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer rounded-lg focus:bg-accent focus:text-accent-foreground py-2.5">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
