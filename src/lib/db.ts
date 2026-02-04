@@ -12,13 +12,15 @@ import {
     setDoc,
     addDoc,
     updateDoc,
-    arrayUnion
+    arrayUnion,
+    deleteDoc
 } from "firebase/firestore"
-import type { Prompt, User } from "./data"
+import type { Prompt, User, AIModel } from "./data"
 
 // Collection references
 const PROMPTS_COLLECTION = "prompts"
 const USERS_COLLECTION = "users"
+const MODELS_COLLECTION = "models"
 
 // Helper function to check if user is authenticated
 function isAuthenticated(): boolean {
@@ -266,5 +268,65 @@ export async function getUserActivity(userId: string, limitCount = 50) {
     } catch (error) {
         console.error("Error fetching activity:", error)
         return []
+    }
+}
+
+// AI Model CRUD
+export async function getAiModels(): Promise<{ label: string; value: string }[]> {
+    try {
+        const querySnapshot = await getDocs(collection(db, MODELS_COLLECTION))
+        return querySnapshot.docs.map(doc => ({
+            label: doc.data().label,
+            value: doc.data().value
+        })).sort((a, b) => a.label.localeCompare(b.label))
+    } catch (error) {
+        console.error("Error fetching models:", error)
+        return []
+    }
+}
+
+export async function addAiModel(label: string, value: string) {
+    try {
+        const modelRef = doc(db, MODELS_COLLECTION, value)
+        await setDoc(modelRef, {
+            label,
+            value,
+            createdAt: serverTimestamp()
+        })
+        return true
+    } catch (error) {
+        console.error("Error adding model:", error)
+        throw error
+    }
+}
+
+export async function updateAiModel(oldValue: string, label: string, newValue: string) {
+    try {
+        // If the identifier (value) changed, we need to delete the old doc and create a new one
+        if (oldValue !== newValue) {
+            await deleteAiModel(oldValue)
+            await addAiModel(label, newValue)
+        } else {
+            const modelRef = doc(db, MODELS_COLLECTION, oldValue)
+            await updateDoc(modelRef, {
+                label,
+                updatedAt: serverTimestamp()
+            })
+        }
+        return true
+    } catch (error) {
+        console.error("Error updating model:", error)
+        throw error
+    }
+}
+
+export async function deleteAiModel(value: string) {
+    try {
+        const modelRef = doc(db, MODELS_COLLECTION, value)
+        await deleteDoc(modelRef)
+        return true
+    } catch (error) {
+        console.error("Error deleting model:", error)
+        throw error
     }
 }

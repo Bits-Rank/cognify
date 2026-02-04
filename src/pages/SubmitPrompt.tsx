@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom"
 import { Sparkles, Loader2, Upload, HelpCircle, ImagePlus, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
-import { createPrompt, logUserActivity } from "@/lib/db"
-import { categories, aiModels } from "@/lib/data"
+import { createPrompt, logUserActivity, getAiModels } from "@/lib/db"
+import { categories, aiModels as defaultAiModels } from "@/lib/data"
 import { toast } from "react-toastify"
 import {
     Select,
@@ -253,7 +253,7 @@ export function SubmitPromptPage() {
         isPremium: false,
         prompt: "",
         negativePrompt: "",
-        model: "midjourney" as AIModel,
+        model: "midjourney" as any,
         width: 1024,
         height: 1024,
         seed: Math.floor(Math.random() * 1000000000),
@@ -262,6 +262,32 @@ export function SubmitPromptPage() {
         sampler: "Euler a",
         scheduler: "Normal"
     })
+
+    const [availableModels, setAvailableModels] = useState<{ label: string; value: string }[]>([])
+    const [loadingModels, setLoadingModels] = useState(true)
+
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                const data = await getAiModels()
+                if (data.length > 0) {
+                    setAvailableModels(data)
+                    // If current model is not in new list, update it to the first one available
+                    if (!data.some(m => m.value === formData.model)) {
+                        setFormData(prev => ({ ...prev, model: data[0].value }))
+                    }
+                } else {
+                    setAvailableModels(defaultAiModels)
+                }
+            } catch (error) {
+                console.error("Failed to fetch models", error)
+                setAvailableModels(defaultAiModels)
+            } finally {
+                setLoadingModels(false)
+            }
+        }
+        fetchModels()
+    }, [])
 
     const [nodePositions, setNodePositions] = useState({
         checkpoint: { x: 20, y: 100 },
@@ -445,17 +471,21 @@ export function SubmitPromptPage() {
                                     <FieldLabel label="ckpt_name" tooltip="The AI model/checkpoint used to generate the image." />
                                     <Select
                                         value={formData.model}
-                                        onValueChange={(value) => setFormData({ ...formData, model: value as AIModel })}
+                                        onValueChange={(value) => setFormData({ ...formData, model: value })}
                                     >
                                         <SelectTrigger className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-800'} rounded-lg h-10 text-xs hover:border-primary/30 transition-all`}>
-                                            <SelectValue placeholder="Select model" />
+                                            <SelectValue placeholder={loadingModels ? "Connecting..." : "Select model"} />
                                         </SelectTrigger>
                                         <SelectContent className={`${isDark ? 'bg-zinc-900/90 border-white/10 text-zinc-200' : 'bg-white border-zinc-200 text-zinc-800'} backdrop-blur-xl`}>
-                                            {aiModels.map(m => (
-                                                <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-primary/20 focus:text-primary cursor-pointer py-2">
-                                                    {m.label}
-                                                </SelectItem>
-                                            ))}
+                                            {loadingModels ? (
+                                                <div className="p-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 animate-pulse">Syncing models...</div>
+                                            ) : (
+                                                availableModels.map(m => (
+                                                    <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-primary/20 focus:text-primary cursor-pointer py-2">
+                                                        {m.label}
+                                                    </SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
