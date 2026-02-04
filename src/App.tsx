@@ -20,7 +20,6 @@ import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './index.css'
 import { ThemeProvider } from './components/ThemeProvider'
-import { ModeToggle } from './components/ModeToggle'
 import { TwoFactorModal } from './components/TwoFactorModal'
 
 
@@ -60,9 +59,7 @@ function App() {
               buttonBgColor="var(--primary)"
               buttonTextColor="var(--primary-foreground)"
               ease="back.out(1.7)"
-            >
-              <ModeToggle />
-            </CardNav>
+            />
             <main className="flex-1 pt-24">
               <Routes>
                 <Route path="/" element={<HomePage />} />

@@ -1,5 +1,5 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useLayoutEffect, useRef, useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -10,9 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut } from 'lucide-react';
-// use your own icon import if react-icons is not available
-import { ArrowUpRight } from 'lucide-react';
+import { User, Settings, LogOut, ArrowUpRight, Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
+import { Switch } from '@/components/ui/switch';
 import './CardNav.css';
 
 type CardNavLink = {
@@ -54,7 +54,9 @@ const CardNav: React.FC<CardNavProps> = ({
   const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const navRef = useRef<HTMLDivElement | null>(null);
   const cardsRef = useRef<HTMLDivElement[]>([]);
   const tlRef = useRef<gsap.core.Timeline | null>(null);
@@ -151,6 +153,38 @@ const CardNav: React.FC<CardNavProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [isExpanded]);
 
+  const closeMenu = () => {
+    const tl = tlRef.current;
+    if (!tl || !isExpanded) return;
+    setIsHamburgerOpen(false);
+    tl.eventCallback('onReverseComplete', () => setIsExpanded(false));
+    tl.reverse();
+  };
+
+  useEffect(() => {
+    if (isExpanded) {
+      closeMenu();
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        closeMenu();
+      }
+    };
+
+    if (isExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isExpanded]);
+
   const toggleMenu = () => {
     const tl = tlRef.current;
     if (!tl) return;
@@ -159,10 +193,12 @@ const CardNav: React.FC<CardNavProps> = ({
       setIsExpanded(true);
       tl.play(0);
     } else {
-      setIsHamburgerOpen(false);
-      tl.eventCallback('onReverseComplete', () => setIsExpanded(false));
-      tl.reverse();
+      closeMenu();
     }
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   const setCardRef = (i: number) => (el: HTMLDivElement | null) => {
@@ -257,6 +293,23 @@ const CardNav: React.FC<CardNavProps> = ({
               </div>
             </div>
           ))}
+
+          <div
+            className="nav-card appearance-card md:hidden"
+            style={{ backgroundColor: 'var(--secondary)', color: 'var(--secondary-foreground)' }}
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="nav-card-label">Appearance</div>
+              <div className="flex items-center gap-2">
+                {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+                <Switch
+                  checked={theme === 'dark'}
+                  onCheckedChange={toggleTheme}
+                  aria-label="Toggle dark mode"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </nav>
     </div>

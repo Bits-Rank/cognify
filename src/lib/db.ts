@@ -12,8 +12,6 @@ import {
     setDoc,
     addDoc,
     updateDoc,
-    collectionGroup,
-    documentId,
     arrayUnion
 } from "firebase/firestore"
 import type { Prompt, User } from "./data"
@@ -60,17 +58,6 @@ export async function getPrompts(limitCount = 20): Promise<Prompt[]> {
         console.error("Error fetching prompts:", error)
 
         // If it's a permission error and we're not authenticated, return empty array
-        const err = error as any;
-        if (err.code === 'permission-denied') {
-            console.log("🔒 Permission denied - Firestore security rules require authentication")
-            return []
-        }
-
-        if (err.message?.includes('index')) {
-            console.error("❌ MISSING INDEX: The query requires a Firestore Collection Group Index.")
-            console.error("👉 Check the link in the error above to create it!")
-        }
-
         return []
     }
 }
