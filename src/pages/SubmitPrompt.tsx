@@ -340,6 +340,29 @@ export function SubmitPromptPage() {
         setNodePositions(prev => ({ ...prev, [id]: pos }))
     }, [])
 
+    // Clipboard Paste Support
+    useEffect(() => {
+        const handlePaste = (e: ClipboardEvent) => {
+            const items = e.clipboardData?.items
+            if (!items) return
+
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const file = items[i].getAsFile()
+                    if (file) {
+                        setSelectedFile(file)
+                        const previewUrl = URL.createObjectURL(file)
+                        setFormData(prev => ({ ...prev, image: previewUrl }))
+                        toast.success("Image pasted from clipboard")
+                    }
+                }
+            }
+        }
+
+        window.addEventListener("paste", handlePaste)
+        return () => window.removeEventListener("paste", handlePaste)
+    }, [])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!user) return
