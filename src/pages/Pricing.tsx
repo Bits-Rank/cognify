@@ -1,8 +1,21 @@
-import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Check, Mail } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth-context';
 
 export function PricingPage() {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    const handleAction = (plan: any) => {
+        if (plan.comingSoon) return;
+        if (user) {
+            navigate('/explore');
+        } else {
+            navigate('/sign-in');
+        }
+    };
+
     const plans = [
         {
             name: "Creator Pack",
@@ -115,6 +128,7 @@ export function PricingPage() {
                             </div>
 
                             <Button
+                                onClick={() => handleAction(plan)}
                                 disabled={plan.comingSoon}
                                 className={`w-full h-14 rounded-2xl text-base font-bold transition-all ${plan.popular
                                     ? 'bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98]'
