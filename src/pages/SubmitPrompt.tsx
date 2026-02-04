@@ -284,59 +284,42 @@ export function SubmitPromptPage() {
     })
     const [wireVersion, setWireVersion] = useState(0)
     const [uploading, setUploading] = useState(false)
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
 
-        // Basic validation
         if (!file.type.startsWith('image/')) {
             toast.error("Please select an image file")
             return
         }
 
-        setUploading(true)
-        const toastId = toast.loading("Uploading image to Cloudinary...")
+        setSelectedFile(file)
+        // Store a local preview URL in formData.image for instant feedback
+        const previewUrl = URL.createObjectURL(file)
+        setFormData(prev => ({ ...prev, image: previewUrl }))
+    }
 
-        try {
-            const formData = new FormData()
-            formData.append('file', file)
-            formData.append('upload_preset', 'ml_default') // Default unsigned preset
-            formData.append('folder', 'prompts')
+    // Actual Cloudinary upload logic moved to a helper
+    const uploadToCloudinary = async (file: File) => {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('upload_preset', 'ml_default')
+        formData.append('folder', 'prompts')
 
-            const response = await fetch(
-                `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'drksnjhgi'}/image/upload`,
-                {
-                    method: 'POST',
-                    body: formData,
-                }
-            )
-
-            const data = await response.json()
-
-            if (data.secure_url) {
-                setFormData(prev => ({ ...prev, image: data.secure_url }))
-                toast.update(toastId, {
-                    render: "Image uploaded successfully!",
-                    type: "success",
-                    isLoading: false,
-                    autoClose: 3000
-                })
-            } else {
-                throw new Error(data.error?.message || "Upload failed")
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'drksnjhgi'}/image/upload`,
+            {
+                method: 'POST',
+                body: formData,
             }
-        } catch (error) {
-            console.error("Cloudinary upload error:", error)
-            toast.update(toastId, {
-                render: "Failed to upload image. Please check your connection.",
-                type: "error",
-                isLoading: false,
-                autoClose: 3000
-            })
-        } finally {
-            setUploading(false)
-        }
+        )
+
+        const data = await response.json()
+        if (data.secure_url) return data.secure_url
+        throw new Error(data.error?.message || "Upload failed")
     }
 
     const handleNodeDrag = useCallback((id: string, pos: { x: number, y: number }) => {
@@ -348,22 +331,45 @@ export function SubmitPromptPage() {
         if (!user) return
 
         if (!formData.title || !formData.prompt || !formData.image) {
-            toast.error("Please fill in all required fields (Title, Positive Prompt, Image URL)")
+            toast.error("Please fill in all required fields (Title, Positive Prompt, Image)")
             return
         }
 
         setIsSubmitting(true)
+        const toastId = toast.loading("Finalizing your workflow...")
+
         try {
+            let finalImageId = formData.image
+
+            // Only upload to Cloudinary if we have a new local file selected
+            if (selectedFile) {
+                toast.update(toastId, { render: "Uploading image to Cloudinary..." })
+                finalImageId = await uploadToCloudinary(selectedFile)
+            }
+
+            toast.update(toastId, { render: "Saving to database..." })
             const newPromptId = await createPrompt({
-                ...formData
+                ...formData,
+                image: finalImageId // Ensure we use the remote URL
             } as any, user)
+
+            toast.update(toastId, {
+                render: "Your prompt has been submitted successfully!",
+                type: "success",
+                isLoading: false,
+                autoClose: 3000
+            })
 
             navigate(`/prompt/${newPromptId}`)
             logUserActivity(user.id, "prompt_create", `Created prompt: ${formData.title}`)
-            toast.success("Your prompt has been submitted successfully!")
-        } catch (error) {
-            console.error("Error creating prompt:", error)
-            toast.error("Failed to create prompt. Please try again.")
+        } catch (error: any) {
+            console.error("Submission error:", error)
+            toast.update(toastId, {
+                render: error.message || "Failed to submit. Please try again.",
+                type: "error",
+                isLoading: false,
+                autoClose: 3000
+            })
         } finally {
             setIsSubmitting(false)
         }
