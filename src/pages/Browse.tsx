@@ -2,8 +2,11 @@ import { useEffect, useState } from "react"
 import { getPrompts } from "@/lib/db"
 import type { Prompt } from "@/lib/data"
 import { PromptCard } from "@/components/PromptCard"
+import { useAuth } from "@/lib/auth-context"
+import { Sparkles } from "lucide-react"
 
 export function BrowsePage() {
+    const { user } = useAuth()
     const [prompts, setPrompts] = useState<Prompt[]>([])
     const [loading, setLoading] = useState(true)
 

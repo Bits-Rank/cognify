@@ -20,6 +20,7 @@ export interface User {
     name: string
     avatar?: string
     subscription: SubscriptionTier
+    credits: number
     promptsUnlocked: string[]
     generationsUsed: number
     generationsReset: string
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             name: data.name || authUser.displayName || "User",
                             avatar: authUser.photoURL || undefined,
                             subscription: data.subscription || "free",
+                            credits: data.credits || 0,
                             promptsUnlocked: data.promptsUnlocked || [],
                             generationsUsed: data.generationsUsed || 0,
                             generationsReset: data.generationsReset || new Date().toISOString(),
@@ -134,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             name: authUser.displayName || "",
                             username: username,
                             subscription: "free" as SubscriptionTier,
+                            credits: 5,
                             promptsUnlocked: [],
                             generationsUsed: 0,
                             generationsReset: new Date().toISOString(),
@@ -151,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             name: authUser.displayName || "User",
                             avatar: authUser.photoURL || undefined,
                             subscription: "free",
+                            credits: 5,
                             promptsUnlocked: [],
                             generationsUsed: 0,
                             generationsReset: new Date().toISOString(),
@@ -177,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         name: authUser.displayName || "User",
                         isAdmin: false,
                         subscription: "free" as SubscriptionTier,
+                        credits: 0,
                         promptsUnlocked: [],
                         generationsUsed: 0,
                         generationsReset: new Date().toISOString(),
@@ -273,11 +278,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unlockPrompt = async (promptId: string) => {
         if (!firebaseUser || !user) return
-        const newUnlocked = [...user.promptsUnlocked, promptId]
-        await updateDoc(doc(db, "users", firebaseUser.uid), {
-            promptsUnlocked: newUnlocked
-        })
-        setUser({ ...user, promptsUnlocked: newUnlocked })
+
+        try {
+            const { unlockPremiumPrompt } = await import("./db")
+            const result = await unlockPremiumPrompt(user.id, promptId)
+
+            if (result.success) {
+                setUser({
+                    ...user,
+                    credits: result.credits ?? user.credits,
+                    promptsUnlocked: [...user.promptsUnlocked, promptId]
+                })
+            }
+        } catch (error: any) {
+            console.error("Failed to unlock prompt:", error)
+            throw error
+        }
     }
 
     const hasUnlockedPrompt = (promptId: string) => {

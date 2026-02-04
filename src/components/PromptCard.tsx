@@ -1,11 +1,16 @@
 import { Link } from "react-router-dom"
 import { useState } from "react"
-import { Copy, Heart } from "lucide-react"
+import { Copy, Heart, Lock, Sparkles } from "lucide-react"
 import { toast } from "react-toastify"
+import { useAuth } from "@/lib/auth-context"
 import type { Prompt } from "@/lib/data"
 
 export function PromptCard({ prompt }: { prompt: Prompt }) {
+    const { user, hasUnlockedPrompt, unlockPrompt } = useAuth()
     const [copied, setCopied] = useState(false)
+    const [isUnlocking, setIsUnlocking] = useState(false)
+
+    const isLocked = prompt.isPremium && !hasUnlockedPrompt(prompt.id)
 
     const handleCopy = (e: React.MouseEvent) => {
         e.preventDefault()
@@ -15,6 +20,31 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
             setCopied(true)
             toast.success("Prompt copied to clipboard!", { position: "bottom-center", theme: "dark" })
             setTimeout(() => setCopied(false), 2000)
+        }
+    }
+
+    const handleUnlock = async (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        if (!user) {
+            toast.info("Please sign in to unlock premium prompts")
+            return
+        }
+
+        if (user.credits < 1) {
+            toast.error("Insufficient credits. You need 1 credit to unlock.")
+            return
+        }
+
+        setIsUnlocking(true)
+        try {
+            await unlockPrompt(prompt.id)
+            toast.success("Prompt unlocked successfully!")
+        } catch (error: any) {
+            toast.error(error.message || "Failed to unlock prompt")
+        } finally {
+            setIsUnlocking(false)
         }
     }
 
@@ -45,10 +75,11 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
 
                     {/* Middle/Bottom Content - Prompt Text */}
                     <div className="absolute inset-x-5 bottom-20 z-10 flex flex-col justify-end">
-                        <p className="text-white/90 text-sm font-medium leading-relaxed line-clamp-4 tracking-wide dropshadow-md">
+                        <p className={`text-white/90 text-sm font-medium leading-relaxed line-clamp-4 tracking-wide dropshadow-md ${isLocked ? 'blur-sm select-none opacity-20' : ''}`}>
                             {prompt.prompt || "No prompt available"}
                         </p>
                     </div>
+
 
                     {/* Bottom Actions */}
                     <div className="absolute bottom-5 left-5 right-5 z-20 flex justify-between items-end">
