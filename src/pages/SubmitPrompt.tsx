@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Sparkles, Loader2, Upload, HelpCircle, ImagePlus, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
-import { createPrompt, logUserActivity, getAiModels } from "@/lib/db"
+import { createPrompt, logUserActivity, getAiModels, getUserProfile } from "@/lib/db"
 import { categories, aiModels as defaultAiModels } from "@/lib/data"
 import { toast } from "react-toastify"
 import {
@@ -266,6 +266,20 @@ export function SubmitPromptPage() {
     const [availableModels, setAvailableModels] = useState<{ label: string; value: string }[]>([])
     const [loadingModels, setLoadingModels] = useState(true)
 
+    // Check for user restriction on mount
+    useEffect(() => {
+        const checkRestriction = async () => {
+            if (user?.id) {
+                const profile = await getUserProfile(user.id)
+                if (profile?.isBlocked) {
+                    toast.error("Your account is restricted from creating new prompts.")
+                    navigate('/')
+                }
+            }
+        }
+        checkRestriction()
+    }, [user, navigate])
+
     useEffect(() => {
         const fetchModels = async () => {
             try {
@@ -376,6 +390,16 @@ export function SubmitPromptPage() {
         const toastId = toast.loading("Finalizing your workflow...")
 
         try {
+            // Final restriction check before upload
+            const profile = await getUserProfile(user.id || (user as any).uid)
+            if (profile?.isBlocked) {
+                toast.dismiss(toastId)
+                toast.error("Account restricted. Submission aborted.")
+                setIsSubmitting(false)
+                navigate('/')
+                return
+            }
+
             let finalImageId = formData.image
 
             // Only upload to Cloudinary if we have a new local file selected
