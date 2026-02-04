@@ -83,32 +83,17 @@ export function HomePage() {
 
                     {/* Fallback if no prompts */}
                     {!loading && prompts.length === 0 && (
-                        <div className="text-center py-12 bg-card rounded-lg border">
-                            <h3 className="text-xl font-semibold mb-4">Ready to explore amazing prompts?</h3>
-                            {!user ? (
-                                <div>
-                                    <p className="text-muted-foreground mb-6">
-                                        Sign in to view the community gallery and discover trending AI prompts.
-                                    </p>
-                                    <div className="flex gap-4 justify-center">
-                                        <Link to="/sign-in">
-                                            <Button>Sign In to View Prompts</Button>
-                                        </Link>
-                                        <Link to="/seed">
-                                            <Button variant="outline">Seed Database</Button>
-                                        </Link>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div>
-                                    <p className="text-muted-foreground mb-6">
-                                        No prompts in the database yet. Add some sample data to get started!
-                                    </p>
-                                    <Link to="/seed">
-                                        <Button>Add Sample Prompts</Button>
-                                    </Link>
-                                </div>
-                            )}
+                        <div className="text-center py-12 bg-card rounded-3xl border border-border shadow-sm max-w-lg mx-auto">
+                            <h3 className="text-2xl font-bold mb-3">Be the first one to share!</h3>
+                            <p className="text-muted-foreground mb-8 text-sm max-w-sm mx-auto">
+                                Our community gallery is waiting for its first masterpiece.
+                                Start the inspiration by sharing your best AI prompts today.
+                            </p>
+                            <Link to="/submit">
+                                <Button className="rounded-full px-8 bg-primary text-primary-foreground hover:bg-primary/90">
+                                    Submit Your First Prompt
+                                </Button>
+                            </Link>
                         </div>
                     )}
 
