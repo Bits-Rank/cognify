@@ -28,6 +28,7 @@ export interface Prompt {
     views: number
     downloads: number
     comments: Comment[]
+    isHidden?: boolean
 }
 
 export interface Comment {
@@ -90,6 +91,7 @@ export interface User {
     }
     isTwoFactorEnabled?: boolean
     twoFactorSecret?: string
+    isBlocked?: boolean
 }
 
 export type Category =

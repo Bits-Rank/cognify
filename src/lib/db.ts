@@ -13,7 +13,10 @@ import {
     addDoc,
     updateDoc,
     arrayUnion,
-    deleteDoc
+    deleteDoc,
+    onSnapshot,
+    getCountFromServer,
+    collectionGroup
 } from "firebase/firestore"
 import type { Prompt, User, AIModel } from "./data"
 
@@ -50,8 +53,11 @@ export async function getPrompts(limitCount = 20): Promise<Prompt[]> {
             }
         })
 
+        // Filter out hidden prompts
+        const visiblePrompts = allPrompts.filter(p => !p.isHidden)
+
         // Sort by createdAt descending
-        return allPrompts.sort((a, b) => {
+        return visiblePrompts.sort((a, b) => {
             const dateA = new Date(a.createdAt).getTime()
             const dateB = new Date(b.createdAt).getTime()
             return dateB - dateA
@@ -186,6 +192,13 @@ export async function createPrompt(promptData: Omit<Prompt, "id" | "createdAt" |
     try {
         // Extract correct user properties based on search results
         const authorId = user.uid || user.id;
+
+        // Check if user is blocked
+        const userDoc = await getDoc(doc(db, USERS_COLLECTION, authorId));
+        if (userDoc.exists() && userDoc.data().isBlocked) {
+            throw new Error("Your account has been restricted from creating new prompts by a moderator.");
+        }
+
         const authorName = user.displayName || user.name || "Anonymous";
         const authorAvatar = user.photoURL || user.avatar || "";
         const authorUsername = user.username || authorName.toLowerCase().replace(/\s+/g, '_') || "anonymous";
@@ -198,7 +211,8 @@ export async function createPrompt(promptData: Omit<Prompt, "id" | "createdAt" |
             likes: 0,
             views: 0,
             downloads: 0,
-            comments: []
+            comments: [],
+            isHidden: false // Default to visible
         };
 
         const docRef = doc(db, PROMPTS_COLLECTION, authorId);
@@ -272,6 +286,19 @@ export async function getUserActivity(userId: string, limitCount = 50) {
 }
 
 // AI Model CRUD
+export function subscribeToAiModels(callback: (models: { label: string; value: string }[]) => void) {
+    const q = collection(db, MODELS_COLLECTION)
+    return onSnapshot(q, (snapshot) => {
+        const models = snapshot.docs.map(doc => ({
+            label: doc.data().label,
+            value: doc.data().value
+        })).sort((a, b) => a.label.localeCompare(b.label))
+        callback(models)
+    }, (error) => {
+        console.error("Error subscribing to models:", error)
+    })
+}
+
 export async function getAiModels(): Promise<{ label: string; value: string }[]> {
     try {
         const querySnapshot = await getDocs(collection(db, MODELS_COLLECTION))
@@ -327,6 +354,180 @@ export async function deleteAiModel(value: string) {
         return true
     } catch (error) {
         console.error("Error deleting model:", error)
+        throw error
+    }
+}
+
+// System Stats & Activity (Admin)
+export async function getSystemStats() {
+    try {
+        const usersCount = await getCountFromServer(collection(db, USERS_COLLECTION))
+        const promptsSnapshot = await getDocs(collection(db, PROMPTS_COLLECTION))
+
+        let totalPrompts = 0
+        let totalLikes = 0
+
+        promptsSnapshot.forEach(doc => {
+            const data = doc.data()
+            if (data.prompts && Array.isArray(data.prompts)) {
+                totalPrompts += data.prompts.length
+                data.prompts.forEach((p: any) => {
+                    totalLikes += (p.likes || 0)
+                })
+            }
+        })
+
+        return {
+            totalUsers: usersCount.data().count,
+            totalPrompts,
+            totalLikes,
+            revenue: 1200000 // Mock for now until payment system is added
+        }
+    } catch (error) {
+        console.error("Error fetching system stats:", error)
+        return { totalUsers: 0, totalPrompts: 0, totalLikes: 0, revenue: 0 }
+    }
+}
+
+export async function getSystemRecentActivity(limitCount = 10) {
+    try {
+        const q = query(
+            collectionGroup(db, "history"),
+            orderBy("createdAt", "desc"),
+            limit(limitCount)
+        )
+        const snapshot = await getDocs(q)
+
+        const activities = await Promise.all(snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data()
+            const userId = docSnap.ref.parent.parent?.id // collectionGroup parent.parent is the doc ID (user ID)
+
+            let authorName = "System"
+            if (userId) {
+                const userDoc = await getDoc(doc(db, USERS_COLLECTION, userId))
+                if (userDoc.exists()) {
+                    authorName = userDoc.data().name || userDoc.data().username || "User"
+                }
+            }
+
+            return {
+                id: docSnap.id,
+                ...data,
+                userId,
+                authorName,
+                createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+            }
+        }))
+
+        return activities
+    } catch (error: any) {
+        if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+            console.error("CRITICAL: Missing Firestore Index for Activity Feed. Follow the link in the console to create it.")
+        }
+        console.error("Error fetching system activity:", error)
+        return []
+    }
+}
+
+export async function getAllUsersList() {
+    try {
+        const querySnapshot = await getDocs(collection(db, USERS_COLLECTION))
+        return querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+        }))
+    } catch (error) {
+        console.error("Error fetching all users:", error)
+        return []
+    }
+}
+
+export async function getAllPromptsList() {
+    try {
+        const querySnapshot = await getDocs(collection(db, PROMPTS_COLLECTION))
+        const allPrompts: any[] = []
+
+        querySnapshot.forEach(doc => {
+            const data = doc.data()
+            const { prompts, ...userInfo } = data
+            if (prompts && Array.isArray(prompts)) {
+                prompts.forEach((p: any) => {
+                    allPrompts.push({
+                        ...p,
+                        authorDetails: {
+                            id: userInfo.authorId,
+                            name: userInfo.author,
+                            username: userInfo.authorUsername,
+                            avatar: userInfo.authorAvatar
+                        }
+                    })
+                })
+            }
+        })
+
+        return allPrompts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    } catch (error) {
+        console.error("Error fetching all prompts list:", error)
+        return []
+    }
+}
+
+// Admin Write Operations
+export async function adminUpdateUser(userId: string, data: Partial<User>) {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, userId)
+        await updateDoc(userRef, {
+            ...data,
+            updatedAt: serverTimestamp()
+        })
+    } catch (error) {
+        console.error("Error updating user (admin):", error)
+        throw error
+    }
+}
+
+export async function adminDeleteUser(userId: string) {
+    try {
+        await deleteDoc(doc(db, USERS_COLLECTION, userId))
+        // Also delete their prompts record
+        await deleteDoc(doc(db, PROMPTS_COLLECTION, userId))
+    } catch (error) {
+        console.error("Error deleting user (admin):", error)
+        throw error
+    }
+}
+
+export async function adminUpdatePrompt(userId: string, promptId: string, data: Partial<any>) {
+    try {
+        const userPromptsRef = doc(db, PROMPTS_COLLECTION, userId)
+        const userPromptsDoc = await getDoc(userPromptsRef)
+
+        if (userPromptsDoc.exists()) {
+            const prompts = userPromptsDoc.data().prompts || []
+            const updatedPrompts = prompts.map((p: any) =>
+                p.id === promptId ? { ...p, ...data, updatedAt: new Date().toISOString() } : p
+            )
+            await updateDoc(userPromptsRef, { prompts: updatedPrompts })
+        }
+    } catch (error) {
+        console.error("Error updating prompt (admin):", error)
+        throw error
+    }
+}
+
+export async function adminDeletePrompt(userId: string, promptId: string) {
+    try {
+        const userPromptsRef = doc(db, PROMPTS_COLLECTION, userId)
+        const userPromptsDoc = await getDoc(userPromptsRef)
+
+        if (userPromptsDoc.exists()) {
+            const prompts = userPromptsDoc.data().prompts || []
+            const updatedPrompts = prompts.filter((p: any) => p.id !== promptId)
+            await updateDoc(userPromptsRef, { prompts: updatedPrompts })
+        }
+    } catch (error) {
+        console.error("Error deleting prompt (admin):", error)
         throw error
     }
 }
