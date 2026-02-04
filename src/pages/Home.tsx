@@ -83,17 +83,36 @@ export function HomePage() {
 
                     {/* Fallback if no prompts */}
                     {!loading && prompts.length === 0 && (
-                        <div className="text-center py-12 bg-card rounded-3xl border border-border shadow-sm max-w-lg mx-auto">
-                            <h3 className="text-2xl font-bold mb-3">Be the first one to share!</h3>
-                            <p className="text-muted-foreground mb-8 text-sm max-w-sm mx-auto">
-                                Our community gallery is waiting for its first masterpiece.
-                                Start the inspiration by sharing your best AI prompts today.
-                            </p>
-                            <Link to="/submit">
-                                <Button className="rounded-full px-8 bg-primary text-primary-foreground hover:bg-primary/90">
-                                    Submit Your First Prompt
-                                </Button>
-                            </Link>
+                        <div className="relative py-32 px-10 glass-card rounded-[40px] border border-white/5 overflow-hidden group max-w-4xl mx-auto shadow-none">
+                            <div className="relative z-10 text-center flex flex-col items-center">
+                                <div className="mb-12 text-primary/30">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-24 w-24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-5xl md:text-6xl font-black mb-6 tracking-tighter leading-tight italic">
+                                    Be the first one to <span className="highlight">share!</span>
+                                </h3>
+                                <p className="text-muted-foreground text-xl mb-12 max-w-xl mx-auto leading-relaxed font-normal">
+                                    Our community gallery is waiting for its first masterpiece.
+                                    Join the elite circle of AI artists and inspire the world today.
+                                </p>
+                                <Link to="/submit">
+                                    <Button size="lg" className="shimmer-effect rounded-full px-12 h-16 text-lg font-bold bg-foreground text-background hover:bg-foreground/90 hover:scale-[1.02] active:scale-95 transition-all shadow-none">
+                                        Submit Your First Prompt
+                                        <ArrowRight className="ml-2 h-6 w-6" />
+                                    </Button>
+                                </Link>
+                            </div>
                         </div>
                     )}
 

@@ -36,38 +36,40 @@ export function SignInPage() {
     }
 
     return (
-        <div className="min-h-[80vh] flex items-center justify-center">
-            <div className="w-full max-w-md px-4">
-                <div className="rounded-2xl border border-border bg-card p-8">
+        <div className="min-h-screen flex items-center justify-center p-4 mesh-gradient">
+            <div className="w-full max-w-md">
+                <div className="glass-card rounded-[40px] border-white/5 p-10 md:p-12 shadow-none relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 blur-[80px] -mr-24 -mt-24 group-hover:bg-primary/10 transition-colors duration-700" />
+
                     {/* Header */}
-                    <div className="text-center mb-8">
-                        <div className="flex justify-center mb-4">
-                            <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center">
-                                <Logo className="h-8 w-8" />
+                    <div className="text-center mb-10 relative z-10">
+                        <div className="flex justify-center mb-8">
+                            <div className="h-20 w-20 bg-white/5 border border-white/10 rounded-[2rem] flex items-center justify-center backdrop-blur-xl group-hover:scale-110 transition-transform duration-500">
+                                <Logo className="h-10 w-10" />
                             </div>
                         </div>
-                        <h1 className="text-2xl font-bold text-foreground">
-                            Welcome to Cognify
+                        <h1 className="text-4xl font-black text-foreground tracking-tighter italic mb-4">
+                            Welcome to <span className="highlight">Cognify</span>
                         </h1>
-                        <p className="text-muted-foreground mt-2">
+                        <p className="text-muted-foreground/60 font-medium">
                             Sign in to discover and create amazing AI prompts
                         </p>
                     </div>
 
-                    {error && <p className="text-sm text-red-500 mb-4 text-center">{error}</p>}
+                    {error && <p className="text-sm text-red-500/80 mb-6 text-center font-medium">{error}</p>}
 
                     {/* Google Sign In */}
-                    <div className="space-y-3">
+                    <div className="relative z-10">
                         <Button
                             variant="outline"
-                            className="w-full bg-background border-border hover:bg-muted py-6"
+                            className="w-full border-white/10 hover:bg-white/5 py-8 rounded-[2rem] text-lg font-bold transition-all hover:scale-[1.02] active:scale-95 shimmer-effect shadow-none"
                             onClick={handleGoogleSignIn}
                             disabled={isLoadingGoogle}
                         >
                             {isLoadingGoogle ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                             ) : (
-                                <svg className="h-5 w-5 mr-3" viewBox="0 0 24 24">
+                                <svg className="h-6 w-6 mr-4" viewBox="0 0 24 24">
                                     <path
                                         fill="currentColor"
                                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -90,8 +92,8 @@ export function SignInPage() {
                         </Button>
                     </div>
 
-                    <p className="text-center text-xs text-muted-foreground mt-6">
-                        By continuing, you agree to our Terms of Service and Privacy Policy.
+                    <p className="text-center text-xs text-muted-foreground/40 mt-10 font-medium">
+                        By continuing, you agree to our <span className="underline decoration-primary/20 hover:text-primary transition-colors cursor-pointer">Terms of Service</span> and <span className="underline decoration-primary/20 hover:text-primary transition-colors cursor-pointer">Privacy Policy</span>.
                     </p>
                 </div>
             </div>
