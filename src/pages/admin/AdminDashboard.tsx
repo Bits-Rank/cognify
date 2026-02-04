@@ -623,7 +623,7 @@ export const AdminDashboard = () => {
                         </div>
                     )}
                     {activeTab.startsWith('audit-') && (
-                        <div className="admin-section animate-in fade-in slide-in-from-bottom-4 duration-700 min-h-[600px] glass-card rounded-[3rem] border border-white/5 p-12">
+                        <div className="admin-section animate-in fade-in slide-in-from-bottom-4 duration-700 min-h-[600px] glass-card rounded-[3rem] border border-white/5 p-6 sm:p-10">
                             {loadingDetail ? (
                                 <div className="py-40 flex flex-col items-center justify-center gap-4">
                                     <Activity className="h-10 w-10 text-primary animate-spin" />
@@ -662,7 +662,7 @@ export const AdminDashboard = () => {
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 {auditData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((usr: any) => (
-                                                    <div key={usr.id} className={`p-5 sm:p-6 rounded-[2.5rem] border ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-zinc-50 border-zinc-100'} flex flex-col gap-5 group hover:border-primary/20 transition-all`}>
+                                                    <div key={usr.id} className={`p-5 sm:p-6 rounded-[2.5rem] border ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-zinc-50 border-zinc-100'} flex flex-col gap-4 group hover:border-primary/20 transition-all`}>
                                                         {/* Top Row: User Primary Info */}
                                                         <div className="flex items-center justify-between gap-4">
                                                             <div className="flex items-center gap-4 min-w-0">
@@ -695,25 +695,21 @@ export const AdminDashboard = () => {
                                                             </div>
                                                         </div>
 
-                                                        {/* Status Badges Row */}
-                                                        <div className="flex flex-wrap gap-1.5">
-                                                            {usr.subscription === 'pro' && <span className="text-[7px] px-2 py-0.5 rounded-full bg-primary/20 text-primary uppercase font-black tracking-widest border border-primary/10">Pro Node</span>}
-                                                            {usr.isBlocked && <span className="text-[7px] px-2 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase font-black tracking-widest border border-destructive/10">Restricted</span>}
-                                                            <div className={`px-2 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-white/50 border-white/5' : 'bg-zinc-100 text-zinc-500 border-zinc-200'} text-[7px] font-black uppercase tracking-widest border`}>
-                                                                {usr.credits || 0} Credits
+                                                        {/* Info Row: Status, Credits & Deployment */}
+                                                        <div className="flex flex-col gap-3 py-4 border-t border-white/5">
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {usr.subscription === 'pro' && <span className="text-[7px] px-2 py-0.5 rounded-full bg-primary/20 text-primary uppercase font-black tracking-widest border border-primary/10">Pro Node</span>}
+                                                                {usr.isBlocked && <span className="text-[7px] px-2 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase font-black tracking-widest border border-destructive/10">Restricted</span>}
                                                             </div>
-                                                        </div>
 
-                                                        {/* Footer Row: Meta Data */}
-                                                        <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-auto">
-                                                            <div className="flex flex-col gap-0.5">
-                                                                <p className="text-[8px] text-muted-foreground/30 font-bold uppercase tracking-[0.2em]">Deployment</p>
-                                                                <p className="font-mono text-[10px] font-bold opacity-60">{new Date(usr.createdAt).toLocaleDateString()}</p>
-                                                            </div>
-                                                            <div className="h-8 w-px bg-white/5 mx-4 hidden sm:block" />
-                                                            <div className="flex flex-col items-end gap-0.5">
-                                                                <p className="text-[8px] text-muted-foreground/30 font-bold uppercase tracking-[0.2em]">Storage</p>
-                                                                <p className="text-[10px] font-bold opacity-60">S-Tier</p>
+                                                            <div className="flex items-center justify-between">
+                                                                <div className={`px-2 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-white/50 border-white/5' : 'bg-zinc-100 text-zinc-500 border-zinc-200'} text-[7px] font-black uppercase tracking-widest border`}>
+                                                                    {usr.credits || 0} Credits
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[8px] text-muted-foreground/30 font-bold uppercase tracking-widest">Joined</span>
+                                                                    <span className="font-mono text-[9px] font-bold opacity-60 italic">{new Date(usr.createdAt).toLocaleDateString()}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>

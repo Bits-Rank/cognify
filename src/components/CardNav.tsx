@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut, ArrowUpRight, Moon, Sun, ShieldCheck } from 'lucide-react';
+import { User, Settings, LogOut, ArrowUpRight, Moon, Sun, ShieldCheck, Sparkles } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { Switch } from '@/components/ui/switch';
 import './CardNav.css';
@@ -241,7 +241,13 @@ const CardNav: React.FC<CardNavProps> = ({
                 <DropdownMenuContent align="end" className="w-56 rounded-xl p-2 bg-card border border-border mt-2 shadow-lg">
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-black uppercase tracking-tighter border border-primary/10">
+                          <Sparkles className="h-2 w-2" />
+                          {user.credits || 0}
+                        </div>
+                      </div>
                       <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                     </div>
                   </DropdownMenuLabel>
