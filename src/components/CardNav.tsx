@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut, ArrowUpRight, Moon, Sun, ShieldCheck, Sparkles } from 'lucide-react';
+import { User, Settings, LogOut, ArrowUpRight, Moon, Sun, ShieldCheck, Sparkles, LayoutDashboard } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { Switch } from '@/components/ui/switch';
 import './CardNav.css';
@@ -252,7 +252,11 @@ const CardNav: React.FC<CardNavProps> = ({
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-border/50 my-2" />
-                  <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer rounded-lg focus:bg-accent focus:text-accent-foreground py-2.5">
+                  <DropdownMenuItem onClick={() => navigate('/dashboard')} className="cursor-pointer rounded-lg focus:bg-primary/10 focus:text-primary py-2.5">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span className="font-bold">Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(user.username ? `/profile/${user.username}` : '/profile')} className="cursor-pointer rounded-lg focus:bg-accent focus:text-accent-foreground py-2.5">
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>

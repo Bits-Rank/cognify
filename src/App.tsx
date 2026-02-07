@@ -26,6 +26,11 @@ import { AdminGuard } from './components/AdminGuard'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
 import { UserManagement } from './pages/admin/UserManagement'
 import { PromptManagement } from './pages/admin/PromptManagement'
+import { UserDashboard } from './pages/UserDashboard'
+import { UnlockedNodes } from './pages/dashboard/UnlockedNodes'
+import { GenerationsDetail } from './pages/dashboard/GenerationsDetail'
+import { MyPromptsDetail } from './pages/dashboard/MyPromptsDetail'
+import { LikesDetail } from './pages/dashboard/LikesDetail'
 
 
 function App() {
@@ -78,6 +83,12 @@ function App() {
                 <Route path="/prompt/:id" element={<PromptDetailPage />} />
                 <Route path="/sign-in" element={<SignInPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/profile/:username" element={<ProfilePage />} />
+                <Route path="/dashboard" element={<UserDashboard />} />
+                <Route path="/dashboard/unlocked" element={<UnlockedNodes />} />
+                <Route path="/dashboard/generations" element={<GenerationsDetail />} />
+                <Route path="/dashboard/prompts" element={<MyPromptsDetail />} />
+                <Route path="/dashboard/likes" element={<LikesDetail />} />
                 <Route path="/pricing" element={<PricingPage />} />
 
                 <Route path="/settings" element={<SettingsPage />} />

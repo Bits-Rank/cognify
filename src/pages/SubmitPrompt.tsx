@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { Sparkles, Loader2, Upload, HelpCircle, ImagePlus, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
-import { createPrompt, logUserActivity, getAiModels, getUserProfile } from "@/lib/db"
+import { createPrompt, logUserActivity, getAiModels, getUserProfile, getPromptById, updateUserPrompt } from "@/lib/db"
 import { categories, aiModels as defaultAiModels } from "@/lib/data"
 import { toast } from "react-toastify"
 import {
@@ -243,9 +243,12 @@ const Node = memo(({ title, color, children, className = "", id, position, onDra
 export function SubmitPromptPage() {
     const { user } = useAuth()
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
+    const promptIdFromUrl = searchParams.get('id')
     const { theme } = useTheme()
     const isDark = theme === "dark"
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isEditMode, setIsEditMode] = useState(false)
     const [formData, setFormData] = useState({
         title: "",
         category: "portraits" as Category,
@@ -262,6 +265,47 @@ export function SubmitPromptPage() {
         sampler: "Euler a",
         scheduler: "Normal"
     })
+
+    // Hydrate form if editing
+    useEffect(() => {
+        if (promptIdFromUrl) {
+            const fetchPrompt = async () => {
+                try {
+                    const existingPrompt = await getPromptById(promptIdFromUrl)
+                    if (existingPrompt) {
+                        // Check ownership
+                        if (existingPrompt.authorId !== user?.id && !user?.isAdmin) {
+                            toast.error("Unauthorized connection. Access denied.")
+                            navigate('/dashboard')
+                            return
+                        }
+
+                        setIsEditMode(true)
+                        setFormData({
+                            title: existingPrompt.title,
+                            category: existingPrompt.category,
+                            image: existingPrompt.image,
+                            isPremium: existingPrompt.isPremium,
+                            prompt: existingPrompt.prompt || "",
+                            negativePrompt: existingPrompt.negativePrompt || "",
+                            model: (existingPrompt.model as any)?.value || existingPrompt.model || "midjourney",
+                            width: existingPrompt.width || 1024,
+                            height: existingPrompt.height || 1024,
+                            seed: existingPrompt.seed || Math.floor(Math.random() * 1000000000),
+                            steps: existingPrompt.steps || 30,
+                            cfgScale: existingPrompt.cfgScale || 7.0,
+                            sampler: existingPrompt.sampler || "Euler a",
+                            scheduler: existingPrompt.scheduler || "Normal"
+                        } as any)
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch prompt for editing", error)
+                    toast.error("Failed to retrieve manifest data")
+                }
+            }
+            fetchPrompt()
+        }
+    }, [promptIdFromUrl, user?.id])
 
     const [availableModels, setAvailableModels] = useState<{ label: string; value: string }[]>([])
     const [loadingModels, setLoadingModels] = useState(true)
@@ -387,7 +431,7 @@ export function SubmitPromptPage() {
         }
 
         setIsSubmitting(true)
-        const toastId = toast.loading("Finalizing your workflow...")
+        const toastId = toast.loading("Saving your prompt...")
 
         try {
             // Final restriction check before upload
@@ -409,20 +453,30 @@ export function SubmitPromptPage() {
             }
 
             toast.update(toastId, { render: "Saving to database..." })
-            const newPromptId = await createPrompt({
-                ...formData,
-                image: finalImageId // Ensure we use the remote URL
-            } as any, user)
+
+            let targetPromptId = promptIdFromUrl
+
+            if (isEditMode && promptIdFromUrl) {
+                await updateUserPrompt(user.id, promptIdFromUrl, {
+                    ...formData,
+                    image: finalImageId
+                })
+            } else {
+                targetPromptId = await createPrompt({
+                    ...formData,
+                    image: finalImageId // Ensure we use the remote URL
+                } as any, user)
+            }
 
             toast.update(toastId, {
-                render: "Your prompt has been submitted successfully!",
+                render: isEditMode ? "Prompt updated successfully!" : "Your prompt has been submitted successfully!",
                 type: "success",
                 isLoading: false,
                 autoClose: 3000
             })
 
-            navigate(`/prompt/${newPromptId}`)
-            logUserActivity(user.id, "prompt_create", `Created prompt: ${formData.title}`)
+            navigate(`/prompt/${targetPromptId}`)
+            logUserActivity(user.id, isEditMode ? "prompt_update" : "prompt_create", `${isEditMode ? 'Updated' : 'Created'} prompt: ${formData.title}`)
         } catch (error: any) {
             console.error("Submission error:", error)
             toast.update(toastId, {
@@ -480,10 +534,10 @@ export function SubmitPromptPage() {
 
             <div className="flex justify-center mb-16 relative z-10">
                 <div className="text-center">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">Submit <span className="highlight">Workflow</span></h1>
+                    <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">Submit <span className="highlight">Prompt</span></h1>
                     <div className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-primary/20 bg-primary/5 text-primary font-bold uppercase tracking-[0.2em] text-[10px] backdrop-blur-xl group hover:scale-105 transition-all">
                         <Sparkles className="h-4 w-4" />
-                        Relay Node Protocol
+                        Prompt Configuration
                     </div>
                 </div>
             </div>
@@ -504,7 +558,7 @@ export function SubmitPromptPage() {
                         {/* Checkpoint Node */}
                         <Node
                             id="checkpoint"
-                            title="Load Checkpoint"
+                            title="AI Model"
                             color="#581c87"
                             position={nodePositions.checkpoint}
                             onDrag={handleNodeDrag}
@@ -515,7 +569,7 @@ export function SubmitPromptPage() {
                                     <div id="checkpoint-out-1" className="w-3 h-3 rounded-full bg-purple-500/40 border-2 border-purple-500" style={{ boxShadow: "0 0 8px #a855f780" }} />
                                 </div>
                                 <div>
-                                    <FieldLabel label="ckpt_name" tooltip="The AI model/checkpoint used to generate the image." />
+                                    <FieldLabel label="model_name" tooltip="The AI model used to generate the image." />
                                     <Select
                                         value={formData.model}
                                         onValueChange={(value) => setFormData({ ...formData, model: value })}
@@ -525,7 +579,7 @@ export function SubmitPromptPage() {
                                         </SelectTrigger>
                                         <SelectContent className={`${isDark ? 'bg-zinc-900/90 border-white/10 text-zinc-200' : 'bg-white border-zinc-200 text-zinc-800'} backdrop-blur-xl`}>
                                             {loadingModels ? (
-                                                <div className="p-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 animate-pulse">Syncing models...</div>
+                                                <div className="p-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 animate-pulse">Loading models...</div>
                                             ) : (
                                                 availableModels.map(m => (
                                                     <SelectItem key={m.value} value={m.value} className="text-xs focus:bg-primary/20 focus:text-primary cursor-pointer py-2">
@@ -560,7 +614,7 @@ export function SubmitPromptPage() {
                         {/* Empty Latent Image Node */}
                         <Node
                             id="latent"
-                            title="Empty Latent Image"
+                            title="Image Settings"
                             color="#1e3a5f"
                             position={nodePositions.latent}
                             onDrag={handleNodeDrag}
@@ -589,7 +643,7 @@ export function SubmitPromptPage() {
                         {/* Positive Prompt Node */}
                         <Node
                             id="positive"
-                            title="CLIP Text Encode (Positive)"
+                            title="Positive Prompt"
                             color="#14532d"
                             position={nodePositions.positive}
                             onDrag={handleNodeDrag}
@@ -613,7 +667,7 @@ export function SubmitPromptPage() {
                         {/* Negative Prompt Node */}
                         <Node
                             id="negative"
-                            title="CLIP Text Encode (Negative)"
+                            title="Negative Prompt"
                             color="#7f1d1d"
                             position={nodePositions.negative}
                             onDrag={handleNodeDrag}
@@ -637,7 +691,7 @@ export function SubmitPromptPage() {
                         {/* Save / Submit Node */}
                         <Node
                             id="save"
-                            title="Save Image"
+                            title="Submit Prompt"
                             color="#134e4a"
                             position={nodePositions.save}
                             onDrag={handleNodeDrag}
@@ -695,7 +749,7 @@ export function SubmitPromptPage() {
 
                                     <div className="space-y-4">
                                         <div className={`p-5 rounded-3xl border ${isDark ? 'bg-white/[0.01] border-white/5 focus-within:border-teal-500/30' : 'bg-zinc-50 border-zinc-200 focus-within:border-teal-500/20'} transition-all`}>
-                                            <FieldLabel label="image_title" tooltip="Give your masterpiece a name." />
+                                            <FieldLabel label="title" tooltip="Give your masterpiece a name." />
                                             <input
                                                 type="text"
                                                 placeholder="Ethereal Landscapes..."
@@ -721,7 +775,7 @@ export function SubmitPromptPage() {
                                                     <div className={`text-[10px] font-bold uppercase tracking-[0.2em] ${formData.isPremium ? 'text-primary' : 'text-zinc-500'}`}>
                                                         Premium Mode
                                                     </div>
-                                                    <div className="text-[9px] text-muted-foreground/40 font-semibold uppercase tracking-widest mt-0.5">Relay Status</div>
+                                                    <div className="text-[9px] text-muted-foreground/40 font-semibold uppercase tracking-widest mt-0.5">Status</div>
                                                 </div>
                                             </div>
                                             <div className={`w-12 h-7 rounded-full p-1.5 transition-colors duration-500 ${formData.isPremium ? 'bg-primary' : isDark ? 'bg-white/10' : 'bg-zinc-200'}`}>
@@ -740,10 +794,10 @@ export function SubmitPromptPage() {
                                             {isSubmitting ? (
                                                 <div className="flex items-center gap-3">
                                                     <Loader2 className="h-5 w-5 animate-spin" />
-                                                    <span className="tracking-tight">Initializing...</span>
+                                                    <span className="tracking-tight">Saving...</span>
                                                 </div>
                                             ) : (
-                                                <span className="tracking-tight">Queue Relay</span>
+                                                <span className="tracking-tight">Submit Prompt</span>
                                             )}
                                         </Button>
                                     </div>
