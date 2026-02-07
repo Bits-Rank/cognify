@@ -103,7 +103,7 @@ const Pagination = ({ total, currentPage, itemsPerPage, onPageChange, isDark }: 
     return (
         <div className="flex items-center justify-between px-2 py-8 border-t border-white/5 mt-8">
             <p className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-widest">
-                Showing <span className="text-primary">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-primary">{Math.min(currentPage * itemsPerPage, total)}</span> of <span className="text-primary">{total}</span> nodes
+                Showing <span className="text-primary">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-primary">{Math.min(currentPage * itemsPerPage, total)}</span> of <span className="text-primary">{total}</span> items
             </p>
             <div className="flex items-center gap-2">
                 <button
@@ -373,18 +373,18 @@ export const AdminDashboard = () => {
                                 ) : (
                                     <>
                                         <ShieldCheck className="h-5 w-5 text-primary" />
-                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Operational Terminal</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Admin Panel</span>
                                     </>
                                 )}
                             </div>
                             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight truncate">
                                 {activeTab === 'overview' && 'System Overview'}
-                                {activeTab === 'models' && 'Neural Models'}
-                                {activeTab === 'analytics' && 'Intelligence Analytics'}
-                                {activeTab === 'security' && 'Security Hub'}
-                                {activeTab === 'audit-users' && 'User Audit'}
-                                {activeTab === 'audit-prompts' && 'Prompt Audit'}
-                                {activeTab === 'audit-likes' && 'Likes Analytics'}
+                                {activeTab === 'models' && 'AI Models'}
+                                {activeTab === 'analytics' && 'Analytics'}
+                                {activeTab === 'security' && 'Security Center'}
+                                {activeTab === 'audit-users' && 'User Management'}
+                                {activeTab === 'audit-prompts' && 'Prompt Management'}
+                                {activeTab === 'audit-likes' && 'Engagement Statistics'}
                                 {activeTab === 'audit-revenue' && 'Revenue Index'}
                             </h1>
                         </div>
@@ -405,7 +405,7 @@ export const AdminDashboard = () => {
                         <div className="space-y-12">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                                 <StatCard
-                                    title="Total Nodes"
+                                    title="Total Users"
                                     value={stats.totalUsers.toLocaleString()}
                                     icon={Users}
                                     color="#3b82f6"
@@ -413,7 +413,7 @@ export const AdminDashboard = () => {
                                     onClick={() => handleDetailClick('Users')}
                                 />
                                 <StatCard
-                                    title="Prompt Manifests"
+                                    title="Total Prompts"
                                     value={stats.totalPrompts.toLocaleString()}
                                     icon={Share2}
                                     color="#a855f7"
@@ -429,7 +429,7 @@ export const AdminDashboard = () => {
                                     onClick={() => handleDetailClick('Likes')}
                                 />
                                 <StatCard
-                                    title="Protocol Revenue"
+                                    title="Revenue"
                                     value={`₹${stats.revenue.toLocaleString()}`}
                                     icon={TrendingUp}
                                     color="#10b981"
@@ -456,8 +456,8 @@ export const AdminDashboard = () => {
                                                 <Activity className="h-5 w-5 sm:h-6 sm:w-6" />
                                             </div>
                                             <div>
-                                                <h3 className="text-lg sm:text-xl font-bold">Neural Activity</h3>
-                                                <p className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-widest">Real-time trace logs</p>
+                                                <h3 className="text-lg sm:text-xl font-bold">System Activity</h3>
+                                                <p className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-widest">Recent activity logs</p>
                                             </div>
                                         </div>
                                     </div>
@@ -489,7 +489,7 @@ export const AdminDashboard = () => {
                                     <div className={`p-6 sm:p-8 rounded-[2rem] md:rounded-[2.5rem] border ${isDark ? 'bg-primary/10 border-primary/20 shadow-[0_0_50px_rgba(var(--primary-rgb),0.1)]' : 'bg-primary/5 border-primary/10'} relative overflow-hidden group`}>
                                         <div className="relative z-10">
                                             <h3 className="text-lg font-bold mb-2">System Health</h3>
-                                            <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'} mb-6`}>All services are operational and running at peak performance.</p>
+                                            <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'} mb-6`}>All services are operational and running normally.</p>
                                             <div className="space-y-4">
                                                 {['Database', 'Auth Server', 'Assets'].map(s => (
                                                     <div key={s} className="flex items-center justify-between">
@@ -528,7 +528,7 @@ export const AdminDashboard = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                                 {/* Model Creation/Edit Form */}
                                 <div className={`p-10 rounded-[2.5rem] border ${isDark ? 'bg-card border-border/50' : 'bg-white border-zinc-200'} shadow-none h-fit`}>
-                                    <h2 className="text-2xl font-bold mb-8">{editingModel ? 'Edit Intelligence' : 'Add Intelligence'}</h2>
+                                    <h2 className="text-2xl font-bold mb-8">{editingModel ? 'Edit AI Model' : 'Add AI Model'}</h2>
                                     <form onSubmit={editingModel ? handleUpdateModel : handleAddModel} className="space-y-6">
                                         <div className="space-y-2">
                                             <Label htmlFor="modelLabel" className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-bold ml-1">Model Name</Label>
@@ -541,7 +541,7 @@ export const AdminDashboard = () => {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="modelValue" className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-bold ml-1">Relay Identifier</Label>
+                                            <Label htmlFor="modelValue" className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-bold ml-1">Model ID</Label>
                                             <Input
                                                 id="modelValue"
                                                 value={editingModel ? editingModel.value : newModel.value}
@@ -610,16 +610,16 @@ export const AdminDashboard = () => {
                     {activeTab === 'analytics' && (
                         <div className="p-24 text-center glass-card rounded-[3rem] border-white/5 animate-in fade-in duration-700">
                             <BarChart3 className="h-16 w-16 mx-auto mb-6 text-primary/20" />
-                            <h2 className="text-2xl font-bold mb-2">Neural Analytics</h2>
-                            <p className="text-muted-foreground/40 font-medium">Data visualization processing...</p>
+                            <h2 className="text-2xl font-bold mb-2">Analytics</h2>
+                            <p className="text-muted-foreground/40 font-medium">Processing visualization data...</p>
                         </div>
                     )}
 
                     {activeTab === 'security' && (
                         <div className="p-24 text-center glass-card rounded-[3rem] border-white/5 animate-in fade-in duration-700">
                             <Shield className="h-16 w-16 mx-auto mb-6 text-primary/20" />
-                            <h2 className="text-2xl font-bold mb-2">Security Hub</h2>
-                            <p className="text-muted-foreground/40 font-medium">Initializing threat detection relays...</p>
+                            <h2 className="text-2xl font-bold mb-2">Security Center</h2>
+                            <p className="text-muted-foreground/40 font-medium">Processing data security checks...</p>
                         </div>
                     )}
                     {activeTab.startsWith('audit-') && (
@@ -627,7 +627,7 @@ export const AdminDashboard = () => {
                             {loadingDetail ? (
                                 <div className="py-40 flex flex-col items-center justify-center gap-4">
                                     <Activity className="h-10 w-10 text-primary animate-spin" />
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40 italic">Decrypting data nodes...</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40 italic">Loading data...</span>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -638,7 +638,7 @@ export const AdminDashboard = () => {
                                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
                                                     <input
                                                         type="text"
-                                                        placeholder="Search intelligence nodes (name, email, unique ID)..."
+                                                        placeholder="Search users (name, email, unique ID)..."
                                                         value={searchTerm}
                                                         onChange={e => setSearchTerm(e.target.value)}
                                                         className={`w-full h-12 pl-12 pr-4 rounded-2xl border text-sm transition-all outline-none ${isDark ? 'bg-white/5 border-white/5 focus:border-primary/30' : 'bg-white border-zinc-200 focus:border-primary/20 shadow-sm'}`}
@@ -651,7 +651,7 @@ export const AdminDashboard = () => {
                                                             <SelectValue placeholder="STATUS" />
                                                         </SelectTrigger>
                                                         <SelectContent className={`${isDark ? 'bg-zinc-950/95' : 'bg-white'} backdrop-blur-2xl border-white/5 rounded-2xl`}>
-                                                            <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest">ALL NODES</SelectItem>
+                                                            <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest">ALL USERS</SelectItem>
                                                             <SelectItem value="pro" className="text-[10px] font-bold uppercase tracking-widest">PRO ONLY</SelectItem>
                                                             <SelectItem value="blocked" className="text-[10px] font-bold uppercase tracking-widest">RESTRICTED</SelectItem>
                                                             <SelectItem value="verified" className="text-[10px] font-bold uppercase tracking-widest">VERIFIED</SelectItem>
@@ -698,7 +698,7 @@ export const AdminDashboard = () => {
                                                         {/* Info Row: Status, Credits & Deployment */}
                                                         <div className="flex flex-col gap-3 py-4 border-t border-white/5">
                                                             <div className="flex flex-wrap gap-1.5">
-                                                                {usr.subscription === 'pro' && <span className="text-[7px] px-2 py-0.5 rounded-full bg-primary/20 text-primary uppercase font-black tracking-widest border border-primary/10">Pro Node</span>}
+                                                                {usr.subscription === 'pro' && <span className="text-[7px] px-2 py-0.5 rounded-full bg-primary/20 text-primary uppercase font-black tracking-widest border border-primary/10">Pro Member</span>}
                                                                 {usr.isBlocked && <span className="text-[7px] px-2 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase font-black tracking-widest border border-destructive/10">Restricted</span>}
                                                             </div>
 
@@ -732,7 +732,7 @@ export const AdminDashboard = () => {
                                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
                                                     <input
                                                         type="text"
-                                                        placeholder="Search prompt manifests (title, author)..."
+                                                        placeholder="Search prompts (title, author)..."
                                                         value={searchTerm}
                                                         onChange={e => setSearchTerm(e.target.value)}
                                                         className={`w-full h-12 pl-12 pr-4 rounded-2xl border text-sm transition-all outline-none ${isDark ? 'bg-white/5 border-white/5 focus:border-primary/30' : 'bg-white border-zinc-200 focus:border-primary/20 shadow-sm'}`}
@@ -875,7 +875,7 @@ export const AdminDashboard = () => {
             } onOpenChange={(open) => !open && setEditingUser(null)}>
                 <DialogContent className={`max-w-md p-0 border-white/5 ${isDark ? 'bg-zinc-950/95' : 'bg-white'} backdrop-blur-2xl rounded-[2.5rem] overflow-hidden`}>
                     <DialogHeader className="p-8 pb-4">
-                        <DialogTitle className="text-xl font-bold">Admin: Edit User Profile</DialogTitle>
+                        <DialogTitle className="text-xl font-bold">Admin: Edit User</DialogTitle>
                     </DialogHeader>
                     <div className="p-8 pt-0 space-y-6">
                         <div className="space-y-4">
@@ -940,7 +940,7 @@ export const AdminDashboard = () => {
                             onClick={() => handleAdminUpdateUser(editingUser.id, { name: editingUser.name, isVerified: editingUser.isVerified, subscription: editingUser.subscription, isBlocked: editingUser.isBlocked, credits: editingUser.credits })}
                             className="w-full h-12 rounded-xl font-bold transition-all hover:scale-[1.02]"
                         >
-                            Commit Changes
+                            Save Changes
                         </Button>
                     </div>
                 </DialogContent>
@@ -976,7 +976,7 @@ export const AdminDashboard = () => {
                             </div>
                             <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
                                 <div className="space-y-1">
-                                    <Label className="text-xs font-bold text-destructive">Secret Relay (Hide)</Label>
+                                    <Label className="text-xs font-bold text-destructive">Hide Prompt</Label>
                                     <p className="text-[10px] text-muted-foreground text-left">Hide prompt from public gallery</p>
                                 </div>
                                 <button
@@ -991,7 +991,7 @@ export const AdminDashboard = () => {
                             onClick={() => handleAdminUpdatePrompt(editingPrompt.authorDetails?.id, editingPrompt.id, { title: editingPrompt.title, isPremium: editingPrompt.isPremium, isHidden: editingPrompt.isHidden })}
                             className="w-full h-12 rounded-xl font-bold transition-all hover:scale-[1.02]"
                         >
-                            Commit Changes
+                            Save Changes
                         </Button>
                     </div>
                 </DialogContent>

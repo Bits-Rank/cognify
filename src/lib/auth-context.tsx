@@ -42,6 +42,7 @@ export interface User {
     twoFactorSecret?: string
     role?: 'admin' | 'user'
     isAdmin: boolean
+    username?: string
 }
 
 interface AuthContextType {
@@ -108,7 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             isTwoFactorEnabled: data.isTwoFactorEnabled || false,
                             twoFactorSecret: data.twoFactorSecret || "",
                             role: userIsAdmin ? 'admin' : 'user',
-                            isAdmin: userIsAdmin
+                            isAdmin: userIsAdmin,
+                            username: data.username || ""
                         }
 
                         // Check if 2FA is enabled
@@ -164,7 +166,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             socials: {},
                             isTwoFactorEnabled: false,
                             role: userIsAdmin ? 'admin' : 'user',
-                            isAdmin: userIsAdmin
+                            isAdmin: userIsAdmin,
+                            username: username
                         }
                         setFirebaseUser(authUser)
                         setUser(newUser)

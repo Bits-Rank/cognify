@@ -131,13 +131,9 @@ export async function getUserByUsername(username: string): Promise<User | undefi
     }
 }
 
-export async function getPromptsByUser(username: string): Promise<Prompt[]> {
+export async function getPromptsByUser(userId: string): Promise<Prompt[]> {
     try {
-        // First find user by username to get their ID
-        const user = await getUserByUsername(username);
-        if (!user) return [];
-
-        const docRef = doc(db, PROMPTS_COLLECTION, user.id)
+        const docRef = doc(db, PROMPTS_COLLECTION, userId)
         const docSnap = await getDoc(docRef)
 
         if (docSnap.exists()) {
@@ -604,4 +600,50 @@ export async function adminDeletePrompt(userId: string, promptId: string) {
         console.error("Error deleting prompt (admin):", error)
         throw error
     }
+}
+
+export async function getPromptsByIds(ids: string[]): Promise<Prompt[]> {
+    try {
+        if (!ids.length) return []
+        const querySnapshot = await getDocs(collection(db, PROMPTS_COLLECTION))
+        const foundPrompts: Prompt[] = []
+
+        querySnapshot.forEach(doc => {
+            const data = doc.data()
+            const { prompts, ...userInfo } = data
+            if (prompts && Array.isArray(prompts)) {
+                const matches = prompts.filter((p: any) => ids.includes(p.id))
+                matches.forEach((p: any) => {
+                    foundPrompts.push({ ...p, ...userInfo } as Prompt)
+                })
+            }
+        })
+
+        return foundPrompts.sort((a, b) => ids.indexOf(b.id) - ids.indexOf(a.id))
+    } catch (error) {
+        console.error("Error fetching prompts by IDs:", error)
+        return []
+    }
+}
+
+export async function updateUserPrompt(userId: string, promptId: string, data: Partial<any>) {
+    try {
+        const userPromptsRef = doc(db, PROMPTS_COLLECTION, userId)
+        const userPromptsDoc = await getDoc(userPromptsRef)
+
+        if (userPromptsDoc.exists()) {
+            const prompts = userPromptsDoc.data().prompts || []
+            const updatedPrompts = prompts.map((p: any) =>
+                p.id === promptId ? { ...p, ...data, updatedAt: new Date().toISOString() } : p
+            )
+            await updateDoc(userPromptsRef, { prompts: updatedPrompts })
+        }
+    } catch (error) {
+        console.error("Error updating prompt:", error)
+        throw error
+    }
+}
+
+export async function togglePromptPremium(userId: string, promptId: string, isPremium: boolean) {
+    return updateUserPrompt(userId, promptId, { isPremium })
 }
