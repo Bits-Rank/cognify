@@ -83,6 +83,7 @@ function App() {
                 <Route path="/prompt/:id" element={<PromptDetailPage />} />
                 <Route path="/sign-in" element={<SignInPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/profile/:username" element={<ProfilePage />} />
                 <Route path="/dashboard" element={<UserDashboard />} />
                 <Route path="/dashboard/unlocked" element={<UnlockedNodes />} />
                 <Route path="/dashboard/generations" element={<GenerationsDetail />} />

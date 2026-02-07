@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { Copy, ArrowLeft, Heart, User, Calendar, Tag, Lock, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { getPromptById } from "@/lib/db"
+import { getPromptById, subscribeToPromptDetail, toggleLikePrompt } from "@/lib/db"
 import { toast } from "react-toastify"
 import { useAuth } from "@/lib/auth-context"
 import type { Prompt } from "@/lib/data"
@@ -19,14 +19,33 @@ export function PromptDetailPage() {
     const isLocked = prompt?.isPremium && !hasUnlockedPrompt(id || "")
 
     useEffect(() => {
+        let unsubscribe: (() => void) | undefined;
+
         async function loadPrompt() {
             if (id) {
                 const data = await getPromptById(id)
-                if (data) setPrompt(data)
+                if (data) {
+                    setPrompt(data)
+
+                    // Start real-time listener
+                    unsubscribe = subscribeToPromptDetail(id, (updatedPrompt) => {
+                        setPrompt(prev => prev ? {
+                            ...prev,
+                            likes: updatedPrompt.likes,
+                            views: updatedPrompt.views,
+                            downloads: updatedPrompt.downloads,
+                            likedBy: updatedPrompt.likedBy
+                        } : updatedPrompt);
+                    });
+                }
             }
             setLoading(false)
         }
+
         loadPrompt()
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, [id])
 
     const handleCopy = () => {
@@ -36,6 +55,42 @@ export function PromptDetailPage() {
             setCopied(true)
             toast.success("Prompt copied to clipboard!")
             setTimeout(() => setCopied(false), 2000)
+        }
+    }
+
+    const isLiked = prompt?.likedBy?.includes(user?.id || "")
+
+    const handleLike = async () => {
+        if (!user || !prompt) {
+            toast.info("Please sign in to like prompts")
+            return
+        }
+
+        // Store original state
+        const originalPrompt = { ...prompt }
+        const wasLiked = isLiked
+
+        // Optimistic Update
+        setPrompt(prev => {
+            if (!prev) return prev
+            const nextLikedBy = wasLiked
+                ? (prev.likedBy || []).filter(id => id !== user.id)
+                : [...(prev.likedBy || []), user.id]
+
+            return {
+                ...prev,
+                likedBy: nextLikedBy,
+                likes: wasLiked ? Math.max(0, (prev.likes || 1) - 1) : (prev.likes || 0) + 1
+            }
+        })
+
+        try {
+            const authorId = prompt.authorId || prompt.authorDetails?.id || ""
+            await toggleLikePrompt(user.id, prompt.id, authorId)
+        } catch (error) {
+            // Revert on error
+            setPrompt(originalPrompt)
+            toast.error("Failed to update like status")
         }
     }
 
@@ -101,7 +156,10 @@ export function PromptDetailPage() {
                         </div>
 
                         <div className="flex justify-between items-center p-6 glass-card rounded-[32px] border-white/5">
-                            <div className="flex items-center gap-4">
+                            <Link
+                                to={`/profile/${prompt.authorDetails?.username || prompt.authorUsername}`}
+                                className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+                            >
                                 <div className="h-12 w-12 rounded-full overflow-hidden bg-primary/10 border border-white/10 flex items-center justify-center font-bold text-primary backdrop-blur-xl">
                                     {(prompt.authorDetails?.avatar || prompt.authorAvatar) ? (
                                         <img src={prompt.authorDetails?.avatar || prompt.authorAvatar} className="w-full h-full object-cover" alt={prompt.authorUsername} />
@@ -113,9 +171,12 @@ export function PromptDetailPage() {
                                     <p className="text-xs text-muted-foreground/60 font-bold uppercase tracking-widest">Creator</p>
                                     <p className="font-bold text-lg">@{prompt.authorDetails?.username || prompt.authorUsername}</p>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2 px-5 py-2.5 bg-white/5 rounded-full border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group/heart">
-                                <Heart className="h-5 w-5 text-primary group-hover:fill-primary transition-all" />
+                            </Link>
+                            <div
+                                onClick={handleLike}
+                                className={`flex items-center gap-2 px-5 py-2.5 bg-white/5 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer group/heart active:scale-95 ${isLiked ? 'text-red-500 border-red-500/20' : ''}`}
+                            >
+                                <Heart className={`h-5 w-5 transition-all ${isLiked ? 'fill-red-500 text-red-500' : 'text-primary group-hover:fill-primary'}`} />
                                 <span className="font-bold">{prompt.likes}</span>
                             </div>
                         </div>

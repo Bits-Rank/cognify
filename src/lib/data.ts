@@ -30,6 +30,7 @@ export interface Prompt {
     comments: Comment[]
     isHidden?: boolean
     authorId?: string
+    likedBy?: string[]
 }
 
 export interface Comment {
@@ -95,6 +96,11 @@ export interface User {
     isBlocked?: boolean
     promptsUnlocked?: string[]
     generationsUsed?: number
+    followerIds?: string[]
+    followingIds?: string[]
+    followersCount?: number
+    followingCount?: number
+    likedPrompts?: string[]
 }
 
 export type Category =

@@ -12,7 +12,10 @@ import {
     setDoc,
     addDoc,
     updateDoc,
+    runTransaction,
     arrayUnion,
+    arrayRemove,
+    increment,
     deleteDoc,
     onSnapshot,
     getCountFromServer,
@@ -646,4 +649,221 @@ export async function updateUserPrompt(userId: string, promptId: string, data: P
 
 export async function togglePromptPremium(userId: string, promptId: string, isPremium: boolean) {
     return updateUserPrompt(userId, promptId, { isPremium })
+}
+
+// Social Features: Following/Followers
+export async function followUser(currentUserId: string, targetUserId: string) {
+    if (currentUserId === targetUserId) return;
+
+    try {
+        const currentUserRef = doc(db, USERS_COLLECTION, currentUserId);
+        const targetUserRef = doc(db, USERS_COLLECTION, targetUserId);
+
+        await updateDoc(currentUserRef, {
+            followingIds: arrayUnion(targetUserId),
+            followingCount: increment(1)
+        });
+
+        await updateDoc(targetUserRef, {
+            followerIds: arrayUnion(currentUserId),
+            followersCount: increment(1)
+        });
+
+        await logUserActivity(currentUserId, "follow_user", `Followed user: ${targetUserId}`);
+        return true;
+    } catch (error) {
+        console.error("Error following user:", error);
+        throw error;
+    }
+}
+
+export async function unfollowUser(currentUserId: string, targetUserId: string) {
+    try {
+        const currentUserRef = doc(db, USERS_COLLECTION, currentUserId);
+        const targetUserRef = doc(db, USERS_COLLECTION, targetUserId);
+
+        await updateDoc(currentUserRef, {
+            followingIds: arrayRemove(targetUserId),
+            followingCount: increment(-1)
+        });
+
+        await updateDoc(targetUserRef, {
+            followerIds: arrayRemove(currentUserId),
+            followersCount: increment(-1)
+        });
+
+        return true;
+    } catch (error) {
+        console.error("Error unfollowing user:", error);
+        throw error;
+    }
+}
+
+export async function isFollowing(currentUserId: string, targetUserId: string): Promise<boolean> {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, currentUserId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const followingIds = userSnap.data()?.followingIds || [];
+            return followingIds.includes(targetUserId);
+        }
+        return false;
+    } catch (error) {
+        console.error("Error checking following status:", error);
+        return false;
+    }
+}
+
+// Likes System
+export async function toggleLikePrompt(userId: string, promptId: string, authorId: string) {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, userId);
+        const authorPromptsRef = doc(db, PROMPTS_COLLECTION, authorId);
+
+        let isLiked = false;
+
+        await runTransaction(db, async (transaction) => {
+            const userSnap = await transaction.get(userRef);
+            const authorPromptsSnap = await transaction.get(authorPromptsRef);
+
+            if (!userSnap.exists() || !authorPromptsSnap.exists()) {
+                throw new Error("User or Author document does not exist");
+            }
+
+            const likedPrompts = userSnap.data()?.likedPrompts || [];
+            isLiked = likedPrompts.includes(promptId);
+
+            const prompts = authorPromptsSnap.data()?.prompts || [];
+            const updatedPrompts = prompts.map((p: any) => {
+                if (p.id === promptId) {
+                    const likedBy = p.likedBy || [];
+                    return {
+                        ...p,
+                        likedBy: isLiked ? likedBy.filter((id: string) => id !== userId) : [...likedBy, userId],
+                        likes: isLiked ? Math.max(0, (p.likes || 1) - 1) : (p.likes || 0) + 1
+                    };
+                }
+                return p;
+            });
+
+            transaction.update(userRef, {
+                likedPrompts: isLiked ? likedPrompts.filter((id: string) => id !== promptId) : [...likedPrompts, promptId]
+            });
+
+            transaction.update(authorPromptsRef, { prompts: updatedPrompts });
+        });
+
+        return !isLiked;
+    } catch (error) {
+        console.error("Error toggling like:", error);
+        throw error;
+    }
+}
+
+export async function getPromptsByAuthorUsername(username: string): Promise<Prompt[]> {
+    try {
+        const user = await getUserByUsername(username);
+        if (!user) return [];
+        return getPromptsByUser(user.id);
+    } catch (error) {
+        console.error("Error fetching prompts by username:", error);
+        return [];
+    }
+}
+
+// Real-time Subscriptions
+export function subscribeToUser(userId: string, callback: (user: User) => void) {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    return onSnapshot(userRef, (doc) => {
+        if (doc.exists()) {
+            callback({ id: doc.id, ...doc.data() } as User);
+        }
+    });
+}
+
+export function subscribeToPromptDetail(promptId: string, callback: (prompt: Prompt) => void) {
+    // Since prompts are stored in a User document's 'prompts' array, 
+    // we need to subscribe to the document that contains this specific prompt.
+    // However, our current schema has prompts in a collection based on authorId.
+    // We first need the authorId to find the document.
+
+    let unsubscribe: () => void = () => { };
+
+    // This is a bit complex due to nested structure, but we can search for the doc first
+    const findAndSubscribe = async () => {
+        const querySnapshot = await getDocs(collection(db, PROMPTS_COLLECTION));
+        let authorId = "";
+        for (const doc of querySnapshot.docs) {
+            const prompts = doc.data().prompts || [];
+            if (prompts.find((p: any) => p.id === promptId)) {
+                authorId = doc.id;
+                break;
+            }
+        }
+
+        if (authorId) {
+            const docRef = doc(db, PROMPTS_COLLECTION, authorId);
+            unsubscribe = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const prompt = (data.prompts || []).find((p: any) => p.id === promptId);
+                    if (prompt) {
+                        callback({ ...prompt, authorId: docSnap.id } as Prompt);
+                    }
+                }
+            });
+        }
+    };
+
+    findAndSubscribe();
+    return () => unsubscribe();
+}
+export function subscribeToPromptsByUser(userId: string, callback: (prompts: Prompt[]) => void) {
+    const docRef = doc(db, PROMPTS_COLLECTION, userId);
+    return onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const { prompts, ...userInfo } = data;
+            const normalized = (prompts || []).map((p: any) => ({
+                ...p,
+                ...userInfo
+            })).sort((a: any, b: any) => {
+                const dateA = new Date(a.createdAt).getTime();
+                const dateB = new Date(b.createdAt).getTime();
+                return dateB - dateA;
+            });
+            callback(normalized);
+        } else {
+            callback([]);
+        }
+    });
+}
+
+export async function getLikedPrompts(userId: string): Promise<Prompt[]> {
+    try {
+        const querySnapshot = await getDocs(collection(db, PROMPTS_COLLECTION));
+        let allLikedPrompts: Prompt[] = [];
+
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (!data.prompts) return;
+
+            const { prompts, ...userInfo } = data;
+            const likedInRange = (prompts || []).filter((p: any) => p.likedBy?.includes(userId));
+            const normalized = likedInRange.map((p: any) => ({
+                ...p,
+                ...userInfo
+            }));
+            allLikedPrompts = [...allLikedPrompts, ...normalized];
+        });
+
+        return allLikedPrompts.sort((a: any, b: any) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
+        });
+    } catch (error) {
+        console.error("Error fetching liked prompts:", error);
+        return [];
+    }
 }

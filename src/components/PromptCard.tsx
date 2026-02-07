@@ -1,11 +1,13 @@
-import { Link } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { useState } from "react"
 import { Copy, Heart, Lock, Sparkles } from "lucide-react"
 import { toast } from "react-toastify"
 import { useAuth } from "@/lib/auth-context"
+import { toggleLikePrompt } from "@/lib/db"
 import type { Prompt } from "@/lib/data"
 
 export function PromptCard({ prompt }: { prompt: Prompt }) {
+    const navigate = useNavigate()
     const { user, hasUnlockedPrompt, unlockPrompt } = useAuth()
     const [copied, setCopied] = useState(false)
     const [isUnlocking, setIsUnlocking] = useState(false)
@@ -48,6 +50,41 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
         }
     }
 
+    const isLiked = prompt.likedBy?.includes(user?.id || "")
+    const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null)
+    const [optimisticLikes, setOptimisticLikes] = useState<number | null>(null)
+
+    const displayLiked = optimisticLiked !== null ? optimisticLiked : isLiked
+    const displayLikes = optimisticLikes !== null ? optimisticLikes : (prompt.likes || 0)
+
+    const handleLike = async (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        if (!user) {
+            toast.info("Please sign in to like prompts")
+            return
+        }
+
+        // Store original state
+        const wasLiked = displayLiked
+        const originalLikes = displayLikes
+
+        // Optimistic Update
+        setOptimisticLiked(!wasLiked)
+        setOptimisticLikes(wasLiked ? originalLikes - 1 : originalLikes + 1)
+
+        try {
+            const authorId = prompt.authorId || prompt.authorDetails?.id || ""
+            await toggleLikePrompt(user.id, prompt.id, authorId)
+        } catch (error) {
+            // Revert on error
+            setOptimisticLiked(wasLiked)
+            setOptimisticLikes(originalLikes)
+            toast.error("Failed to update like status")
+        }
+    }
+
     return (
         <Link to={`/prompt/${prompt.id}`} className="block h-full">
             <div className="group relative rounded-[32px] overflow-hidden glass-card hover-lift cursor-pointer h-full border-0 shadow-lg">
@@ -67,9 +104,12 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
                         <span className="text-[10px] font-bold text-white uppercase tracking-widest bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10 truncate max-w-[65%] shadow-sm">
                             {prompt.title}
                         </span>
-                        <div className="flex items-center gap-1.5 text-white bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10 shadow-sm">
-                            <Heart className="h-3 w-3 fill-white/20" />
-                            <span className="text-[10px] font-bold">{prompt.likes}</span>
+                        <div
+                            onClick={handleLike}
+                            className={`flex items-center gap-1.5 text-white bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10 shadow-sm transition-all hover:scale-110 active:scale-95 cursor-pointer ${displayLiked ? 'text-red-500 border-red-500/30' : ''}`}
+                        >
+                            <Heart className={`h-3 w-3 ${displayLiked ? 'fill-red-500 text-red-500' : 'fill-white/20'}`} />
+                            <span className="text-[10px] font-bold">{displayLikes}</span>
                         </div>
                     </div>
 
@@ -101,7 +141,14 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
                         )}
 
                         {/* Right Action: Author */}
-                        <div className="flex items-center gap-2">
+                        <div
+                            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity bg-black/20 p-1 pr-3 rounded-full backdrop-blur-sm border border-white/5"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                navigate(`/profile/${prompt.authorDetails?.username || prompt.authorUsername}`)
+                            }}
+                        >
                             {(prompt.authorDetails?.avatar || prompt.authorAvatar) && (
                                 <img
                                     src={prompt.authorDetails?.avatar || prompt.authorAvatar}
@@ -110,7 +157,7 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
                                 />
                             )}
                             <div className="flex flex-col items-end">
-                                <span className="text-[10px] text-white/60 font-medium mb-0.5">by {prompt.authorDetails?.username || prompt.authorUsername || "Unknown"}</span>
+                                <span className="text-[10px] text-white font-bold">@{prompt.authorDetails?.username || prompt.authorUsername || "Unknown"}</span>
                             </div>
                         </div>
                     </div>

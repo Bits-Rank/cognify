@@ -256,7 +256,7 @@ const CardNav: React.FC<CardNavProps> = ({
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     <span className="font-bold">Dashboard</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer rounded-lg focus:bg-accent focus:text-accent-foreground py-2.5">
+                  <DropdownMenuItem onClick={() => navigate(user.username ? `/profile/${user.username}` : '/profile')} className="cursor-pointer rounded-lg focus:bg-accent focus:text-accent-foreground py-2.5">
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
