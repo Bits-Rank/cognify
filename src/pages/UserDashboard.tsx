@@ -45,6 +45,82 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import type { ActivityLog, Prompt } from '@/lib/data'
 import { DeleteNodeDialog } from '@/components/DeleteNodeDialog'
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer
+} from 'recharts'
+
+// Memoized AnalyticsChart
+const AnalyticsChart = React.memo(({ data, isDark, metric }: any) => {
+    const getColor = (m: string) => {
+        switch (m) {
+            case 'Generations': return '#f59e0b';
+            case 'Likes': return '#ef4444';
+            case 'Prompts': return '#10b981';
+            case 'Unlocked': return '#3b82f6';
+            default: return 'var(--primary)';
+        }
+    }
+    const color = getColor(metric);
+
+    return (
+        <div className="h-[300px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={color} stopOpacity={0} />
+                        </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
+                    />
+                    <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: isDark ? '#52525b' : '#a1a1aa', fontSize: 10, fontWeight: 'bold' }}
+                        dy={10}
+                    />
+                    <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: isDark ? '#52525b' : '#a1a1aa', fontSize: 10, fontWeight: 'bold' }}
+                    />
+                    <Tooltip
+                        contentStyle={{
+                            backgroundColor: isDark ? '#18181b' : '#ffffff',
+                            border: '1px solid var(--border)',
+                            borderRadius: '16px',
+                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                            fontSize: '12px',
+                            fontWeight: 'bold'
+                        }}
+                        cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: '4 4' }}
+                    />
+                    <Area
+                        key={metric}
+                        type="monotone"
+                        dataKey={metric}
+                        stroke={color}
+                        strokeWidth={4}
+                        fillOpacity={1}
+                        fill="url(#colorValue)"
+                        animationDuration={1500}
+                    />
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
+    )
+})
 
 // Memoized StatCard
 const StatCard = React.memo(({ title, value, icon: Icon, color, isDark, subtext, onClick }: any) => (
@@ -90,6 +166,10 @@ export const UserDashboard = () => {
         totalPrompts: 0,
         totalLikes: 0
     })
+    const [chartData, setChartData] = useState<any[]>([])
+    const [activeMetric, setActiveMetric] = useState('Prompts')
+    const [timezoneMode, setTimezoneMode] = useState<'local' | 'utc'>('local')
+    const [dateRange, setDateRange] = useState('7d') // 7d, 30d, this_month, last_month, this_year, last_year
 
     useEffect(() => {
         if (!user?.id) return
@@ -97,8 +177,47 @@ export const UserDashboard = () => {
         const fetchData = async () => {
             setLoading(true)
             try {
+                // Calculate start date based on range
+                const now = new Date()
+                let startDate = new Date()
+                let limitCount = 100
+
+                switch (dateRange) {
+                    case '7d':
+                        startDate.setDate(now.getDate() - 7)
+                        limitCount = 100
+                        break
+                    case '30d':
+                        startDate.setDate(now.getDate() - 30)
+                        limitCount = 500
+                        break
+                    case 'this_month':
+                        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+                        limitCount = 500
+                        break
+                    case 'last_month':
+                        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+                        limitCount = 1000
+                        break
+                    case 'this_year':
+                        startDate = new Date(now.getFullYear(), 0, 1)
+                        limitCount = 2000
+                        break
+                    case 'last_year':
+                        startDate = new Date(now.getFullYear() - 1, 0, 1)
+                        limitCount = 5000 // Large limit for full year
+                        break
+                    default:
+                        startDate.setDate(now.getDate() - 7)
+                }
+
+                // If filtering by "last_" ranges, we also need an End Date for the query or client-side filter
+                // For "last_month", end date is last day of previous month.
+                // For "last_year", end date is Dec 31 of previous year.
+                // Since firestore 'where' helps, we pass startDate. We might fetch slightly more and filter exact locally.
+
                 const [activityLogs, prompts, profile] = await Promise.all([
-                    getUserActivity(user.id, 5),
+                    getUserActivity(user.id, limitCount, startDate),
                     getPromptsByUser(user.id),
                     getUserProfile(user.id)
                 ])
@@ -107,12 +226,59 @@ export const UserDashboard = () => {
                 setUserPrompts(prompts)
 
                 if (profile) {
-                    setStats({
+                    const currentStats = {
                         totalUnlocked: profile.promptsUnlocked?.length || 0,
                         generations: profile.generationsUsed || 0,
                         totalPrompts: prompts.length,
-                        totalLikes: prompts.reduce((acc, p) => acc + (p.likes || 0), 0)
+                        totalLikes: prompts.reduce((acc: any, p: any) => acc + (p.likes || 0), 0)
+                    }
+                    setStats(currentStats)
+
+                    // Generate Day List based on Range
+                    const days = []
+                    const rangeEnd = new Date()
+                    const rangeStart = new Date(startDate)
+
+                    if (dateRange === 'last_month') {
+                        rangeEnd.setDate(0) // Last day of previous month
+                    } else if (dateRange === 'last_year') {
+                        rangeEnd.setFullYear(now.getFullYear() - 1, 11, 31)
+                    }
+
+                    // For long ranges (Year), group by Month? Or keep Day if screen allows.
+                    // Let's stick to Day for now, or maybe dynamically group if > 60 days.
+                    // Recharts handles strict data well, but labels might get crowded.
+                    // For "this_year", that's 365 points. Recharts might need a smaller tick interval.
+
+                    // Iterate from Start to End
+                    for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + 1)) {
+                        days.push({
+                            date: new Date(d),
+                            label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                            matchKey: timezoneMode === 'local'
+                                ? d.toLocaleDateString('en-CA') // YYYY-MM-DD local
+                                : d.toISOString().split('T')[0] // YYYY-MM-DD UTC
+                        })
+                    }
+
+                    const data = days.map((day) => {
+                        const isMatch = (dateStr: string) => {
+                            const d = new Date(dateStr)
+                            const currentMatch = timezoneMode === 'local'
+                                ? d.toLocaleDateString('en-CA')
+                                : d.toISOString().split('T')[0]
+                            return currentMatch === day.matchKey
+                        }
+
+                        return {
+                            name: day.label,
+                            Prompts: prompts.filter((p: any) => isMatch(p.createdAt)).length,
+                            Unlocked: (activityLogs as any[]).filter((a: any) => a.action === 'unlock_prompt' && isMatch(a.createdAt)).length,
+                            Likes: (activityLogs as any[]).filter((a: any) => a.action === 'like_prompt' && isMatch(a.createdAt)).length,
+                            Generations: (activityLogs as any[]).filter((a: any) => a.action === 'generation' && isMatch(a.createdAt)).length
+                        }
                     })
+                    setChartData(data)
                 }
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error)
@@ -123,7 +289,7 @@ export const UserDashboard = () => {
         }
 
         fetchData()
-    }, [user?.id, user?.username, user?.name])
+    }, [user?.id, user?.username, user?.name, timezoneMode, dateRange])
 
     const handleDeletePrompt = (promptId: string) => {
         setPromptToDelete(promptId)
@@ -255,38 +421,86 @@ export const UserDashboard = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    {/* Recent Activity */}
-                                    <div className={`lg:col-span-2 p-8 rounded-[2.5rem] border ${isDark ? 'bg-card/50 border-border/50' : 'bg-white border-zinc-200'} min-h-[400px]`}>
-                                        <div className="flex items-center justify-between mb-8">
-                                            <h2 className="text-xl font-bold">Recent Activity</h2>
-                                            <button
-                                                onClick={() => navigate('/profile')}
-                                                className="text-primary text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-80"
-                                            >
-                                                View All <ArrowUpRight className="h-3 w-3" />
-                                            </button>
-                                        </div>
-                                        <div className="space-y-4">
-                                            {activities.length > 0 ? (
-                                                activities.map((activity: any) => (
-                                                    <div key={activity.id} className="group/item flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-primary/20 transition-all">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className={`w-2 h-2 rounded-full ${activity.action === 'login' ? 'bg-primary' : 'bg-green-500'}`} />
-                                                            <div>
-                                                                <p className="text-sm font-bold">{activity.details}</p>
-                                                                <p className="text-[10px] text-muted-foreground/40 font-bold tracking-widest mt-0.5">{formatDistanceToNow(new Date(activity.createdAt))} ago</p>
-                                                            </div>
-                                                        </div>
-                                                        <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded bg-white/5 opacity-0 group-hover/item:opacity-100 transition-opacity ${isDark ? 'text-zinc-600' : 'text-zinc-300'}`}>
-                                                            {activity.action.replace('_', ' ')}
-                                                        </span>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="py-20 text-center text-muted-foreground/40 font-bold uppercase tracking-widest border border-dashed border-white/5 rounded-3xl">
-                                                    No recent relays detected.
+                                    {/* Analytics Visualization */}
+                                    <div className={`lg:col-span-2 p-8 rounded-[2.5rem] border ${isDark ? 'bg-card/50 border-border/50' : 'bg-white border-zinc-200'} min-h-[400px] flex flex-col`}>
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                                            <div className="flex items-center gap-4">
+                                                <div>
+                                                    <h2 className="text-xl font-bold">Activity Analytics</h2>
+                                                    <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                                        7-Day {activeMetric} Trend ({timezoneMode.toUpperCase()})
+                                                    </p>
                                                 </div>
-                                            )}
+                                                <div className={`p-1 rounded-lg border flex items-center gap-1 ${isDark ? 'bg-zinc-900/50 border-white/5' : 'bg-zinc-100 border-zinc-200'}`}>
+                                                    <select
+                                                        value={dateRange}
+                                                        onChange={(e) => setDateRange(e.target.value)}
+                                                        className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-transparent outline-none cursor-pointer ${isDark ? 'text-zinc-400 hover:text-foreground' : 'text-zinc-500 hover:text-foreground'}`}
+                                                    >
+                                                        <option value="7d">Last 7 Days</option>
+                                                        <option value="30d">Last 30 Days</option>
+                                                        <option value="this_month">This Month</option>
+                                                        <option value="last_month">Last Month</option>
+                                                        <option value="this_year">This Year</option>
+                                                        <option value="last_year">Last Year</option>
+                                                    </select>
+                                                    <div className={`w-px h-3 ${isDark ? 'bg-white/10' : 'bg-zinc-300'}`} />
+                                                    <button
+                                                        onClick={() => setTimezoneMode('local')}
+                                                        className={`px-2 py-1 rounded-md text-[8px] font-bold uppercase transition-all ${timezoneMode === 'local' ? 'bg-primary text-background' : 'text-zinc-500 hover:text-foreground'}`}
+                                                    >
+                                                        Local
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setTimezoneMode('utc')}
+                                                        className={`px-2 py-1 rounded-md text-[8px] font-bold uppercase transition-all ${timezoneMode === 'utc' ? 'bg-primary text-background' : 'text-zinc-500 hover:text-foreground'}`}
+                                                    >
+                                                        UTC
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className={`flex items-center gap-1 p-1 rounded-full border ${isDark ? 'bg-zinc-900/50 border-white/5' : 'bg-zinc-100 border-zinc-200'} overflow-x-auto no-scrollbar`}>
+                                                {['Generations', 'Likes', 'Prompts', 'Unlocked'].map((m) => (
+                                                    <button
+                                                        key={m}
+                                                        onClick={() => setActiveMetric(m)}
+                                                        className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-tighter transition-all whitespace-nowrap ${activeMetric === m
+                                                            ? 'bg-primary text-background shadow-lg shadow-primary/20'
+                                                            : isDark ? 'text-zinc-500 hover:text-foreground' : 'text-zinc-400 hover:text-zinc-900'
+                                                            }`}
+                                                    >
+                                                        {m === 'Unlocked' ? 'Unlocked Nodes' : m}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 min-h-[300px]">
+                                            <AnalyticsChart data={chartData} isDark={isDark} metric={activeMetric} />
+                                        </div>
+
+                                        <div className="mt-6 pt-6 border-t border-border/50 flex items-center justify-between">
+                                            <div className="flex gap-8">
+                                                <div>
+                                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold mb-1">Total {activeMetric}</p>
+                                                    <p className="text-sm font-bold">
+                                                        {activeMetric === 'Generations' ? stats.generations :
+                                                            activeMetric === 'Likes' ? stats.totalLikes :
+                                                                activeMetric === 'Prompts' ? stats.totalPrompts :
+                                                                    stats.totalUnlocked}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold mb-1">Status</p>
+                                                    <p className="text-sm font-bold text-green-500">Optimal</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setActiveTab('history')}
+                                                className="text-primary text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-80 transition-all hover:gap-3"
+                                            >
+                                                View Logs <ArrowUpRight className="h-3 w-3" />
+                                            </button>
                                         </div>
                                     </div>
 

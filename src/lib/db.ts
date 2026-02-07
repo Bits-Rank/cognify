@@ -304,10 +304,19 @@ export async function logUserActivity(userId: string, action: string, details: s
     }
 }
 
-export async function getUserActivity(userId: string, limitCount = 50) {
+export async function getUserActivity(userId: string, limitCount = 100, startDate?: Date) {
     try {
         const historyRef = collection(db, USERS_COLLECTION, userId, "history")
-        const q = query(historyRef, orderBy("createdAt", "desc"), limit(limitCount))
+        let q = query(historyRef, orderBy("createdAt", "desc"), limit(limitCount))
+
+        if (startDate) {
+            // Note: This requires an index on createdAt if combining with other filters, 
+            // but for now we'll just fetch more and filter client-side if needed for small datasets,
+            // or rely on the limit. 
+            // To properly implement server-side date filtering with ordering:
+            q = query(historyRef, where("createdAt", ">=", startDate), orderBy("createdAt", "desc"), limit(limitCount))
+        }
+
         const snapshot = await getDocs(q)
 
         return snapshot.docs.map(doc => ({
@@ -751,6 +760,11 @@ export async function toggleLikePrompt(userId: string, promptId: string, authorI
             });
 
             transaction.update(authorPromptsRef, { prompts: updatedPrompts });
+
+            // Log real-time activity for the analytics graph
+            if (!isLiked) {
+                logUserActivity(userId, "like_prompt", `Liked prompt: ${promptId}`);
+            }
         });
 
         return !isLiked;
