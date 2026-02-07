@@ -26,6 +26,11 @@ import { AdminGuard } from './components/AdminGuard'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
 import { UserManagement } from './pages/admin/UserManagement'
 import { PromptManagement } from './pages/admin/PromptManagement'
+import { UserDashboard } from './pages/UserDashboard'
+import { UnlockedNodes } from './pages/dashboard/UnlockedNodes'
+import { GenerationsDetail } from './pages/dashboard/GenerationsDetail'
+import { MyPromptsDetail } from './pages/dashboard/MyPromptsDetail'
+import { LikesDetail } from './pages/dashboard/LikesDetail'
 
 
 function App() {
@@ -71,13 +76,19 @@ function App() {
               buttonTextColor="var(--primary-foreground)"
               ease="back.out(1.7)"
             />
-            <main className="flex-1 pt-24">
+            <main className="flex-1 pt-24 md:pt-32">
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/explore" element={<BrowsePage />} />
                 <Route path="/prompt/:id" element={<PromptDetailPage />} />
                 <Route path="/sign-in" element={<SignInPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/profile/:username" element={<ProfilePage />} />
+                <Route path="/dashboard" element={<UserDashboard />} />
+                <Route path="/dashboard/unlocked" element={<UnlockedNodes />} />
+                <Route path="/dashboard/generations" element={<GenerationsDetail />} />
+                <Route path="/dashboard/prompts" element={<MyPromptsDetail />} />
+                <Route path="/dashboard/likes" element={<LikesDetail />} />
                 <Route path="/pricing" element={<PricingPage />} />
 
                 <Route path="/settings" element={<SettingsPage />} />

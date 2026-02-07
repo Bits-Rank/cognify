@@ -29,6 +29,8 @@ export interface Prompt {
     downloads: number
     comments: Comment[]
     isHidden?: boolean
+    authorId?: string
+    likedBy?: string[]
 }
 
 export interface Comment {
@@ -92,6 +94,13 @@ export interface User {
     isTwoFactorEnabled?: boolean
     twoFactorSecret?: string
     isBlocked?: boolean
+    promptsUnlocked?: string[]
+    generationsUsed?: number
+    followerIds?: string[]
+    followingIds?: string[]
+    followersCount?: number
+    followingCount?: number
+    likedPrompts?: string[]
 }
 
 export type Category =

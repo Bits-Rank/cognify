@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut, ArrowUpRight, Moon, Sun, ShieldCheck, Sparkles } from 'lucide-react';
+import { User, Settings, LogOut, ArrowUpRight, Moon, Sun, ShieldCheck, Sparkles, LayoutDashboard } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { Switch } from '@/components/ui/switch';
 import './CardNav.css';
@@ -252,7 +252,11 @@ const CardNav: React.FC<CardNavProps> = ({
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-border/50 my-2" />
-                  <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer rounded-lg focus:bg-accent focus:text-accent-foreground py-2.5">
+                  <DropdownMenuItem onClick={() => navigate('/dashboard')} className="cursor-pointer rounded-lg focus:bg-primary/10 focus:text-primary py-2.5">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span className="font-bold">Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(user.username ? `/profile/${user.username}` : '/profile')} className="cursor-pointer rounded-lg focus:bg-accent focus:text-accent-foreground py-2.5">
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
@@ -307,7 +311,7 @@ const CardNav: React.FC<CardNavProps> = ({
           ))}
 
           <div
-            className="nav-card appearance-card md:hidden"
+            className="nav-card appearance-card"
             style={{ backgroundColor: 'var(--secondary)', color: 'var(--secondary-foreground)' }}
           >
             <div className="flex items-center justify-between w-full">
@@ -322,6 +326,20 @@ const CardNav: React.FC<CardNavProps> = ({
               </div>
             </div>
           </div>
+          {!user && (
+            <div
+              className={`nav-card mobile-only`}
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            >
+              <div className="nav-card-label">Join Cognify</div>
+              <div className="nav-card-links">
+                <Link to="/sign-in" className="nav-card-link" aria-label="Sign in or join">
+                  <ArrowUpRight className="nav-card-link-icon" aria-hidden="true" size={16} />
+                  Get Started
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
     </div>
