@@ -76,7 +76,7 @@ function App() {
               buttonTextColor="var(--primary-foreground)"
               ease="back.out(1.7)"
             />
-            <main className="flex-1 pt-24">
+            <main className="flex-1 pt-24 md:pt-32">
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/explore" element={<BrowsePage />} />

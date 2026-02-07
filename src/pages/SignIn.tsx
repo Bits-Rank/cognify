@@ -36,19 +36,19 @@ export function SignInPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 mesh-gradient">
+        <div className="flex justify-center p-4 pt-10 mesh-gradient">
             <div className="w-full max-w-md">
-                <div className="glass-card rounded-[40px] border-white/5 p-10 md:p-12 shadow-none relative overflow-hidden group">
+                <div className="glass-card rounded-[40px] border-white/5 p-8 md:p-10 shadow-none relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 blur-[80px] -mr-24 -mt-24 group-hover:bg-primary/10 transition-colors duration-700" />
 
                     {/* Header */}
-                    <div className="text-center mb-10 relative z-10">
-                        <div className="flex justify-center mb-8">
-                            <div className="h-20 w-20 bg-white/5 border border-white/10 rounded-[2rem] flex items-center justify-center backdrop-blur-xl group-hover:scale-110 transition-transform duration-500">
-                                <Logo className="h-10 w-10" />
+                    <div className="text-center mb-6 relative z-10">
+                        <div className="flex justify-center mb-6">
+                            <div className="h-16 w-16 bg-white/5 border border-white/10 rounded-[1.5rem] flex items-center justify-center backdrop-blur-xl group-hover:scale-110 transition-transform duration-500">
+                                <Logo className="h-8 w-8" />
                             </div>
                         </div>
-                        <h1 className="text-4xl font-black text-foreground tracking-tighter italic mb-4">
+                        <h1 className="text-4xl font-black text-foreground tracking-tighter italic mb-2">
                             Welcome to <span className="highlight">Cognify</span>
                         </h1>
                         <p className="text-muted-foreground/60 font-medium">
@@ -62,7 +62,7 @@ export function SignInPage() {
                     <div className="relative z-10">
                         <Button
                             variant="outline"
-                            className="w-full border-white/10 hover:bg-white/5 py-8 rounded-[2rem] text-lg font-bold transition-all hover:scale-[1.02] active:scale-95 shimmer-effect shadow-none"
+                            className="w-full border-white/10 hover:bg-white/5 py-7 rounded-[2rem] text-lg font-bold transition-all hover:scale-[1.02] active:scale-95 shimmer-effect shadow-none"
                             onClick={handleGoogleSignIn}
                             disabled={isLoadingGoogle}
                         >
@@ -92,7 +92,7 @@ export function SignInPage() {
                         </Button>
                     </div>
 
-                    <p className="text-center text-xs text-muted-foreground/40 mt-10 font-medium">
+                    <p className="text-center text-xs text-muted-foreground/40 mt-8 font-medium">
                         By continuing, you agree to our <span className="underline decoration-primary/20 hover:text-primary transition-colors cursor-pointer">Terms of Service</span> and <span className="underline decoration-primary/20 hover:text-primary transition-colors cursor-pointer">Privacy Policy</span>.
                     </p>
                 </div>

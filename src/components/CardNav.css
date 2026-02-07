@@ -2,7 +2,7 @@
   position: fixed;
   /* Changed from absolute to fixed for sticky header behavior if needed, or stick to absolute as per request. Sticking to request but checking if it covers content. Request said absolute top 2em. */
   position: absolute;
-  top: 2em;
+  top: 1rem;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -34,7 +34,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.45rem 0.55rem 1.1rem;
+  padding: 0 1.25rem;
   z-index: 2;
 }
 
@@ -129,6 +129,16 @@
   pointer-events: auto;
 }
 
+.mobile-only {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: flex !important;
+  }
+}
+
 .nav-card {
   height: 100%;
   flex: 1 1 0;
@@ -172,7 +182,7 @@
 @media (max-width: 768px) {
   .card-nav-container {
     width: 90%;
-    top: 1.2em;
+    top: 1rem;
   }
 
   .card-nav-top {
@@ -181,13 +191,19 @@
   }
 
   .hamburger-menu {
-    order: 2;
+    order: 3;
+    padding-left: 0.5rem;
   }
 
   .logo-container {
     position: static;
     transform: none;
     order: 1;
+    margin-right: auto;
+  }
+
+  .card-nav-top>div.flex {
+    order: 2;
   }
 
   .card-nav-cta-button {
@@ -197,8 +213,8 @@
   .card-nav-content {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
-    padding: 0.5rem;
+    gap: 12px;
+    padding: 0rem;
     bottom: 0;
     justify-content: flex-start;
   }

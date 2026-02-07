@@ -311,7 +311,7 @@ const CardNav: React.FC<CardNavProps> = ({
           ))}
 
           <div
-            className="nav-card appearance-card md:hidden"
+            className="nav-card appearance-card"
             style={{ backgroundColor: 'var(--secondary)', color: 'var(--secondary-foreground)' }}
           >
             <div className="flex items-center justify-between w-full">
@@ -326,6 +326,20 @@ const CardNav: React.FC<CardNavProps> = ({
               </div>
             </div>
           </div>
+          {!user && (
+            <div
+              className={`nav-card mobile-only`}
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            >
+              <div className="nav-card-label">Join Cognify</div>
+              <div className="nav-card-links">
+                <Link to="/sign-in" className="nav-card-link" aria-label="Sign in or join">
+                  <ArrowUpRight className="nav-card-link-icon" aria-hidden="true" size={16} />
+                  Get Started
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
     </div>
