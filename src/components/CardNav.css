@@ -191,19 +191,20 @@
   }
 
   .hamburger-menu {
-    order: 3;
-    padding-left: 0.5rem;
+    order: 1;
+    padding-left: 0;
   }
 
   .logo-container {
-    position: static;
-    transform: none;
-    order: 1;
-    margin-right: auto;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    order: 2;
   }
 
   .card-nav-top>div.flex {
-    order: 2;
+    order: 3;
   }
 
   .card-nav-cta-button {
