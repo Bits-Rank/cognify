@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { AuthProvider } from './lib/auth-context'
 import CardNav from './components/CardNav'
 import { Logo } from './components/Logo'
@@ -31,6 +31,8 @@ import { UnlockedNodes } from './pages/dashboard/UnlockedNodes'
 import { GenerationsDetail } from './pages/dashboard/GenerationsDetail'
 import { MyPromptsDetail } from './pages/dashboard/MyPromptsDetail'
 import { LikesDetail } from './pages/dashboard/LikesDetail'
+import { UpcomingFeaturesPage } from './pages/UpcomingFeatures'
+import { UpcomingFeaturesManagement } from './pages/admin/UpcomingFeaturesManagement'
 
 
 function App() {
@@ -49,6 +51,7 @@ function App() {
       textColor: "var(--secondary-foreground)",
       links: [
         { label: "Submit Prompt", ariaLabel: "Submit Prompt", href: "/submit" },
+        { label: "Upcoming", ariaLabel: "Upcoming Features", href: "/upcoming" },
         { label: "About", ariaLabel: "About Us", href: "/about" }
       ]
     },
@@ -75,7 +78,8 @@ function App() {
               buttonBgColor="var(--primary)"
               buttonTextColor="var(--primary-foreground)"
               ease="back.out(1.7)"
-            />
+            >
+            </CardNav>
             <main className="flex-1 pt-24 md:pt-32">
               <Routes>
                 <Route path="/" element={<HomePage />} />
@@ -99,6 +103,7 @@ function App() {
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/faq" element={<FAQPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/upcoming" element={<UpcomingFeaturesPage />} />
 
                 {/* Admin Routes */}
                 <Route
@@ -122,6 +127,14 @@ function App() {
                   element={
                     <AdminGuard>
                       <PromptManagement />
+                    </AdminGuard>
+                  }
+                />
+                <Route
+                  path="/admin/upcoming"
+                  element={
+                    <AdminGuard>
+                      <UpcomingFeaturesManagement />
                     </AdminGuard>
                   }
                 />

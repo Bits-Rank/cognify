@@ -191,72 +191,101 @@ export function ProfilePage() {
 
     return (
         <div className="min-h-screen pt-10 pb-20 px-4 max-w-5xl mx-auto">
-            {/* Header: Instagram Style */}
-            <header className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-20 mb-12 px-4">
-                <div className="relative">
-                    <Avatar className="h-32 w-32 md:h-40 md:w-40 border-2 border-border/50 p-1 bg-background ring-offset-2 ring-transparent transition-all">
-                        <AvatarImage src={profileUser.avatar || ""} className="rounded-full object-cover" />
-                        <AvatarFallback className="bg-muted text-4xl font-bold">
-                            {profileUser.name?.charAt(0) || profileUser.username?.charAt(0)}
-                        </AvatarFallback>
-                    </Avatar>
+            {/* Header: Instagram Mobile Style */}
+            <header className="px-4 mb-10 max-w-2xl mx-auto">
+                {/* Top Row: Avatar & Stats */}
+                <div className="flex items-center gap-8 md:gap-12 mb-6">
+                    <div className="shrink-0">
+                        <Avatar className="h-20 w-20 sm:h-24 sm:w-24 md:h-32 md:w-32 border border-border/10 p-0.5 bg-background shadow-sm">
+                            <AvatarImage
+                                src={profileUser.avatar || `https://ui-avatars.com/api/?name=${profileUser.name || profileUser.username}&background=random&size=256`}
+                                className="rounded-full object-cover"
+                            />
+                            <AvatarFallback className="bg-muted text-2xl font-bold">
+                                {profileUser.name?.charAt(0) || profileUser.username?.charAt(0)}
+                            </AvatarFallback>
+                        </Avatar>
+                    </div>
+
+                    <div className="flex-1 flex justify-around sm:justify-between sm:max-w-xs">
+                        <div className="flex flex-col items-center">
+                            <span className="font-bold sm:text-lg">{prompts.length}</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">posts</span>
+                        </div>
+                        <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity">
+                            <span className="font-bold sm:text-lg">{profileUser.followersCount || 0}</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">followers</span>
+                        </div>
+                        <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity">
+                            <span className="font-bold sm:text-lg">{profileUser.followingCount || 0}</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">following</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex-1 space-y-6 text-center md:text-left">
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                        <h1 className="text-xl font-semibold tracking-tight">{profileUser.username}</h1>
-                        <div className="flex gap-2">
-                            {isOwnProfile ? (
-                                <>
-                                    <Button variant="secondary" size="sm" className="h-9 px-6 font-semibold" onClick={() => navigate("/settings")}>
-                                        Edit Profile
-                                    </Button>
-                                    <Button variant="secondary" size="icon" className="h-9 w-9" onClick={() => navigate("/settings")}>
-                                        <Settings className="h-5 w-5" />
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <Button
-                                        variant={isFollowing ? "secondary" : "default"}
-                                        size="sm"
-                                        className={`h-9 px-8 font-semibold transition-all ${!isFollowing ? 'bg-primary text-primary-foreground hover:opacity-90' : ''}`}
-                                        onClick={handleFollowToggle}
-                                    >
-                                        {isFollowing ? (
-                                            <span className="flex items-center gap-2">Following <Check className="h-4 w-4" /></span>
-                                        ) : "Follow"}
-                                    </Button>
-                                    <Button variant="secondary" size="sm" className="h-9 px-4 font-semibold">Message</Button>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                {/* Identity Section: Username, Name, Bio */}
+                <div className="space-y-1 mb-6">
+                    <h1 className="text-sm font-bold tracking-tight lowercase">{profileUser.username}</h1>
+                    <p className="text-sm font-semibold">{profileUser.name}</p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                        {profileUser.bio || "Prompt engineer & visual artist."}
+                    </p>
+                    {profileUser.website && (
+                        <a
+                            href={profileUser.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-bold text-[#00376b] dark:text-[#e0f1ff] hover:underline block"
+                        >
+                            {profileUser.website.replace(/^https?:\/\//, '')}
+                        </a>
+                    )}
+                </div>
 
-                    <div className="flex items-center justify-center md:justify-start gap-8 text-sm md:text-base">
-                        <div className="flex gap-1">
-                            <span className="font-bold">{prompts.length}</span>
-                            <span className="text-muted-foreground">posts</span>
-                        </div>
-                        <div className="flex gap-1 cursor-pointer hover:opacity-70 transition-opacity">
-                            <span className="font-bold">{profileUser.followersCount || 0}</span>
-                            <span className="text-muted-foreground">followers</span>
-                        </div>
-                        <div className="flex gap-1 cursor-pointer hover:opacity-70 transition-opacity">
-                            <span className="font-bold">{profileUser.followingCount || 0}</span>
-                            <span className="text-muted-foreground">following</span>
-                        </div>
-                    </div>
-
-                    <div className="space-y-1">
-                        <p className="font-bold">{profileUser.name}</p>
-                        <p className="text-sm whitespace-pre-wrap">{profileUser.bio || "Prompt engineer & visual artist."}</p>
-                        {profileUser.website && (
-                            <a href={profileUser.website} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-[#00376b] dark:text-[#e0f1ff] hover:underline">
-                                {profileUser.website.replace(/^https?:\/\//, '')}
-                            </a>
-                        )}
-                    </div>
+                {/* Action Buttons: Full width on mobile */}
+                <div className="flex gap-2">
+                    {isOwnProfile ? (
+                        <>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-9 flex-1 font-bold bg-secondary/80 hover:bg-secondary transition-colors"
+                                onClick={() => navigate("/settings")}
+                            >
+                                Edit Profile
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-9 flex-1 font-bold bg-secondary/80 hover:bg-secondary transition-colors"
+                                onClick={() => navigate("/settings")}
+                            >
+                                Share profile
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-9 w-9 bg-secondary/80 hover:bg-secondary shrink-0"
+                                onClick={() => navigate("/settings")}
+                            >
+                                <Settings className="h-5 w-5" />
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button
+                                variant={isFollowing ? "secondary" : "default"}
+                                size="sm"
+                                className={`h-9 flex-1 font-bold transition-all ${!isFollowing ? 'bg-primary text-primary-foreground hover:opacity-90' : 'bg-secondary/80 hover:bg-secondary'}`}
+                                onClick={handleFollowToggle}
+                            >
+                                {isFollowing ? "Following" : "Follow"}
+                            </Button>
+                            <Button variant="secondary" size="sm" className="h-9 flex-1 font-bold bg-secondary/80 hover:bg-secondary">
+                                Message
+                            </Button>
+                        </>
+                    )}
                 </div>
             </header>
 
