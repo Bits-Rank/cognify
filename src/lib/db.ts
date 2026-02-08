@@ -795,17 +795,15 @@ export function subscribeToUser(userId: string, callback: (user: User) => void) 
     });
 }
 
-export function subscribeToPromptDetail(promptId: string, callback: (prompt: Prompt) => void) {
-    // Since prompts are stored in a User document's 'prompts' array, 
-    // we need to subscribe to the document that contains this specific prompt.
-    // However, our current schema has prompts in a collection based on authorId.
-    // We first need the authorId to find the document.
-
+// we need to subscribe to the document that contains this specific prompt.
+// This is complex because we need the userId.
+export function subscribeToPromptDetails(promptId: string, callback: (prompt: Prompt) => void) {
     let unsubscribe: () => void = () => { };
 
-    // This is a bit complex due to nested structure, but we can search for the doc first
     const findAndSubscribe = async () => {
-        const querySnapshot = await getDocs(collection(db, PROMPTS_COLLECTION));
+        const q = query(collection(db, PROMPTS_COLLECTION), where("prompts", "array-contains", { id: promptId }));
+        const querySnapshot = await getDocs(q);
+
         let authorId = "";
         for (const doc of querySnapshot.docs) {
             const prompts = doc.data().prompts || [];
@@ -832,6 +830,10 @@ export function subscribeToPromptDetail(promptId: string, callback: (prompt: Pro
     findAndSubscribe();
     return () => unsubscribe();
 }
+
+// Alias for backwards compatibility
+export const subscribeToPromptDetail = subscribeToPromptDetails;
+
 export function subscribeToPromptsByUser(userId: string, callback: (prompts: Prompt[]) => void) {
     const docRef = doc(db, PROMPTS_COLLECTION, userId);
     return onSnapshot(docRef, (docSnap) => {
@@ -881,3 +883,104 @@ export async function getLikedPrompts(userId: string): Promise<Prompt[]> {
         return [];
     }
 }
+
+// Upcoming Features CRUD
+const UPCOMING_FEATURES_COLLECTION = "upcoming_features";
+
+export interface UpcomingFeature {
+    id: string;
+    title: string;
+    description: string;
+    status: 'Planned' | 'In Progress' | 'Completed';
+    image?: string;
+    createdAt: string;
+}
+
+export async function getUpcomingFeatures(): Promise<UpcomingFeature[]> {
+    try {
+        const querySnapshot = await getDocs(query(collection(db, UPCOMING_FEATURES_COLLECTION), orderBy('createdAt', 'desc')));
+        return querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as UpcomingFeature[];
+    } catch (error) {
+        console.error("Error fetching upcoming features:", error);
+        return [];
+    }
+}
+
+export async function addUpcomingFeature(data: Omit<UpcomingFeature, 'id' | 'createdAt'>) {
+    try {
+        await addDoc(collection(db, UPCOMING_FEATURES_COLLECTION), {
+            ...data,
+            createdAt: new Date().toISOString()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error adding upcoming feature:", error);
+        throw error;
+    }
+}
+
+export async function updateUpcomingFeature(id: string, data: Partial<UpcomingFeature>) {
+    try {
+        const docRef = doc(db, UPCOMING_FEATURES_COLLECTION, id);
+        await updateDoc(docRef, {
+            ...data,
+            updatedAt: serverTimestamp()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error updating upcoming feature:", error);
+        throw error;
+    }
+}
+
+export async function deleteUpcomingFeature(id: string) {
+    try {
+        await deleteDoc(doc(db, UPCOMING_FEATURES_COLLECTION, id));
+        return true;
+    } catch (error) {
+        console.error("Error deleting upcoming feature:", error);
+        throw error;
+    }
+}
+
+// Upcoming Features Subscriptions
+export async function subscribeToFeature(featureId: string, userId: string, email: string) {
+    try {
+        const subscriberRef = doc(db, "upcoming_features", featureId, "subscribers", userId);
+        await setDoc(subscriberRef, {
+            userId,
+            email,
+            subscribedAt: serverTimestamp()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error subscribing to feature:", error);
+        throw error;
+    }
+}
+
+export async function unsubscribeFromFeature(featureId: string, userId: string) {
+    try {
+        const subscriberRef = doc(db, "upcoming_features", featureId, "subscribers", userId);
+        await deleteDoc(subscriberRef);
+        return true;
+    } catch (error) {
+        console.error("Error unsubscribing from feature:", error);
+        throw error;
+    }
+}
+
+export async function checkSubscriptionStatus(featureId: string, userId: string): Promise<boolean> {
+    try {
+        const subscriberRef = doc(db, "upcoming_features", featureId, "subscribers", userId);
+        const docSnap = await getDoc(subscriberRef);
+        return docSnap.exists();
+    } catch (error) {
+        console.error("Error checking subscription status:", error);
+        return false;
+    }
+}
+
