@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
     ChevronLeft,
     Database,
@@ -115,18 +116,32 @@ export const MyPromptsDetail = () => {
                             />
                         </div>
                         <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <div className={`flex items-center p-1 rounded-2xl ${isDark ? 'bg-zinc-900/50 border-white/5 shadow-lg shadow-primary/5' : 'bg-white border-zinc-200 shadow-lg shadow-black/5'} border shrink-0 h-11`}>
+                            <div className={`flex items-center p-1 rounded-2xl ${isDark ? 'bg-zinc-900/50 border-white/5 h-11' : 'bg-white border-zinc-200 h-11'} border shrink-0 relative`}>
                                 <button
                                     onClick={() => setViewMode('grid')}
-                                    className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all ${viewMode === 'grid' ? 'bg-primary text-background' : 'text-muted-foreground hover:bg-white/5'}`}
+                                    className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all relative group ${viewMode === 'grid' ? 'text-white' : 'text-muted-foreground hover:bg-white/5'}`}
                                 >
-                                    <LayoutGrid className="h-4 w-4" />
+                                    {viewMode === 'grid' && (
+                                        <motion.div
+                                            layoutId="viewToggle"
+                                            className="absolute inset-0 bg-primary rounded-xl"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
+                                    <LayoutGrid className="h-4 w-4 relative z-10" />
                                 </button>
                                 <button
                                     onClick={() => setViewMode('list')}
-                                    className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all ${viewMode === 'list' ? 'bg-primary text-background' : 'text-muted-foreground hover:bg-white/5'}`}
+                                    className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all relative group ${viewMode === 'list' ? 'text-white' : 'text-muted-foreground hover:bg-white/5'}`}
                                 >
-                                    <List className="h-4 w-4" />
+                                    {viewMode === 'list' && (
+                                        <motion.div
+                                            layoutId="viewToggle"
+                                            className="absolute inset-0 bg-primary rounded-xl"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
+                                    <List className="h-4 w-4 relative z-10" />
                                 </button>
                             </div>
                             <Button onClick={() => navigate('/submit')} className="rounded-2xl h-11 px-6 font-bold gap-2 shrink-0 shadow-lg shadow-primary/20 border-none flex-1 sm:flex-initial">

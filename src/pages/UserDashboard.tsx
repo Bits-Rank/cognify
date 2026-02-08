@@ -33,6 +33,7 @@ import {
     Pencil,
     Star
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/lib/auth-context'
 import { useTheme } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/button'
@@ -343,13 +344,22 @@ export const UserDashboard = () => {
     const NavButton = ({ id, label, icon: Icon }: { id: string, label: string, icon: any }) => (
         <button
             onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold transition-all duration-300 ${activeTab === id
-                ? 'bg-primary text-background shadow-xl shadow-primary/30 scale-[1.08] -translate-y-0.5'
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold transition-all duration-300 relative group ${activeTab === id
+                ? 'text-white'
                 : isDark ? 'text-zinc-500 hover:text-foreground hover:bg-white/5' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100'
                 }`}
         >
-            <Icon className="h-3.5 w-3.5" strokeWidth={activeTab === id ? 3 : 2} />
-            {label}
+            {activeTab === id && (
+                <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/20"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+                <Icon className="h-3.5 w-3.5" strokeWidth={activeTab === id ? 3 : 2} />
+                {label}
+            </span>
         </button>
     )
 
@@ -599,18 +609,32 @@ export const UserDashboard = () => {
                         {activeTab === 'prompts' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                                 <div className="flex items-center gap-3 mb-8 w-full sticky top-0 z-10 py-1">
-                                    <div className={`flex items-center p-1 rounded-2xl ${isDark ? 'bg-zinc-900/50 border-white/5 shadow-lg shadow-primary/5' : 'bg-white border-zinc-200 shadow-lg shadow-black/5'} border shrink-0 h-11`}>
+                                    <div className={`flex items-center p-1 rounded-2xl ${isDark ? 'bg-zinc-900/50 border-white/5 h-11' : 'bg-white border-zinc-200 h-11'} border shrink-0 relative`}>
                                         <button
                                             onClick={() => setViewMode('grid')}
-                                            className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all ${viewMode === 'grid' ? 'bg-primary text-background' : 'text-muted-foreground hover:bg-white/5'}`}
+                                            className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all relative group ${viewMode === 'grid' ? 'text-white' : 'text-muted-foreground hover:bg-white/5'}`}
                                         >
-                                            <LayoutGrid className="h-4 w-4" />
+                                            {viewMode === 'grid' && (
+                                                <motion.div
+                                                    layoutId="dashViewToggle"
+                                                    className="absolute inset-0 bg-primary rounded-xl"
+                                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                />
+                                            )}
+                                            <LayoutGrid className="h-4 w-4 relative z-10" />
                                         </button>
                                         <button
                                             onClick={() => setViewMode('list')}
-                                            className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all ${viewMode === 'list' ? 'bg-primary text-background' : 'text-muted-foreground hover:bg-white/5'}`}
+                                            className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all relative group ${viewMode === 'list' ? 'text-white' : 'text-muted-foreground hover:bg-white/5'}`}
                                         >
-                                            <List className="h-4 w-4" />
+                                            {viewMode === 'list' && (
+                                                <motion.div
+                                                    layoutId="dashViewToggle"
+                                                    className="absolute inset-0 bg-primary rounded-xl"
+                                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                />
+                                            )}
+                                            <List className="h-4 w-4 relative z-10" />
                                         </button>
                                     </div>
                                     <Button onClick={() => navigate('/submit')} variant="default" className="rounded-2xl gap-2 font-bold h-11 px-6 shadow-lg shadow-primary/20 border-none flex-1">

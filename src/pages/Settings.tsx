@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useAuth, type User } from "@/lib/auth-context"
+import { useTheme } from "@/components/ThemeProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { User as UserIcon, Lock, Share2, Bell, Trash2, Loader2, Globe, Instagram, Facebook, Linkedin, Dribbble } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import { updateUserProfile } from "@/lib/db"
 import { storage, auth } from "@/lib/firebase"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
@@ -29,6 +31,8 @@ type Tab = "profile" | "security" | "social" | "notifications" | "activity" | "d
 
 export function SettingsPage() {
     const { user, firebaseUser } = useAuth()
+    const { theme } = useTheme()
+    const isDark = theme === "dark"
     const [activeTab, setActiveTab] = useState<Tab>("profile")
     const [isLoading, setIsLoading] = useState(false)
 
@@ -217,13 +221,22 @@ export function SettingsPage() {
     const SidebarItem = ({ tab, icon: Icon, label }: { tab: Tab, icon: any, label: string }) => (
         <button
             onClick={() => setActiveTab(tab)}
-            className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl text-[11px] font-bold uppercase tracking-[0.1em] transition-all duration-500 ${activeTab === tab
-                ? "bg-foreground text-background shadow-lg scale-[1.02]"
+            className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl text-[11px] font-bold uppercase tracking-[0.1em] transition-all duration-500 relative group ${activeTab === tab
+                ? isDark ? "text-background" : "text-white"
                 : "text-muted-foreground/40 hover:text-foreground hover:bg-white/5"
                 }`}
         >
-            <Icon className="h-4 w-4" strokeWidth={2} />
-            {label}
+            {activeTab === tab && (
+                <motion.div
+                    layoutId="sidebarTab"
+                    className={`absolute inset-0 rounded-2xl ${isDark ? "bg-foreground" : "bg-primary"} shadow-lg shadow-black/10`}
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+            )}
+            <span className="relative z-10 flex items-center gap-4">
+                <Icon className="h-4 w-4" strokeWidth={2} />
+                {label}
+            </span>
         </button>
     )
 

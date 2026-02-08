@@ -1,4 +1,5 @@
 import React from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { LayoutDashboard, Users, Heart, Share2, ShieldCheck, ArrowUpRight, Rocket } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth-context'
@@ -347,13 +348,22 @@ export const AdminDashboard = () => {
     const NavButton = ({ id, label, icon: Icon }: { id: string, label: string, icon: any }) => (
         <button
             onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold transition-all duration-300 ${activeTab === id
-                ? 'bg-primary text-background shadow-xl shadow-primary/30 scale-[1.08] -translate-y-0.5'
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold transition-all duration-300 relative group ${activeTab === id
+                ? 'text-white'
                 : isDark ? 'text-zinc-500 hover:text-foreground hover:bg-white/5' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100'
                 }`}
         >
-            <Icon className="h-3.5 w-3.5" strokeWidth={activeTab === id ? 3 : 2} />
-            {label}
+            {activeTab === id && (
+                <motion.div
+                    layoutId="adminTab"
+                    className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/20"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+                <Icon className="h-3.5 w-3.5" strokeWidth={activeTab === id ? 3 : 2} />
+                {label}
+            </span>
         </button>
     )
 

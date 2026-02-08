@@ -34,6 +34,7 @@
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^11.3.1",
+    "framer-motion": "^12.33.0",
     "gsap": "^3.14.2",
     "lucide-react": "^0.468.0",
     "otpauth": "^9.4.1",
