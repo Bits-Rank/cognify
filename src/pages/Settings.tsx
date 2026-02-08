@@ -13,7 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { User as UserIcon, Lock, Share2, Bell, Trash2, Camera, Loader2, Globe, Instagram, Facebook, Linkedin, Dribbble } from "lucide-react"
+import { User as UserIcon, Lock, Share2, Bell, Trash2, Loader2, Globe, Instagram, Facebook, Linkedin, Dribbble } from "lucide-react"
 import { updateUserProfile } from "@/lib/db"
 import { storage, auth } from "@/lib/firebase"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
@@ -107,26 +107,6 @@ export function SettingsPage() {
         }
     }
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file || !user) return
-
-        setIsLoading(true)
-        try {
-            const storageRef = ref(storage, `avatars/${user.id}/${Date.now()}_${file.name}`)
-            await uploadBytes(storageRef, file)
-            const url = await getDownloadURL(storageRef)
-
-            await updateUserProfile(user.id, { avatar: url })
-            logUserActivity(user.id, "profile_update", "Updated avatar")
-            toast.success("Avatar updated successfully")
-        } catch (error) {
-            console.error(error)
-            toast.error("Failed to upload avatar")
-        } finally {
-            setIsLoading(false)
-        }
-    }
 
     const handleTwoFactorToggle = async () => {
         if (!user) return
@@ -276,37 +256,6 @@ export function SettingsPage() {
                                 <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                     <h2 className="text-xl font-semibold mb-6">Profile</h2>
 
-                                    {/* Avatar Section */}
-                                    <div className="flex items-center gap-6 mb-8 p-6 glass-card rounded-2xl border border-border/50">
-                                        <div className="relative group shrink-0">
-                                            <div className="h-24 w-24 rounded-full overflow-hidden ring-4 ring-background shadow-xl">
-                                                <img
-                                                    src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name}&background=random`}
-                                                    alt="Avatar"
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            </div>
-                                            <div
-                                                className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm"
-                                                onClick={() => fileInputRef.current?.click()}
-                                            >
-                                                <Camera className="h-8 w-8 text-white" />
-                                            </div>
-                                            <input
-                                                type="file"
-                                                ref={fileInputRef}
-                                                className="hidden"
-                                                accept="image/png, image/jpeg"
-                                                onChange={handleAvatarUpload}
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h3 className="font-medium">Profile Photo</h3>
-                                            <p className="text-sm text-muted-foreground max-w-xs">
-                                                Update your avatar by clicking the image. 288x288 px size recommended in PNG or JPG format only.
-                                            </p>
-                                        </div>
-                                    </div>
 
                                     {/* Form Fields */}
                                     <div className="space-y-8">

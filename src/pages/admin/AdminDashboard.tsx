@@ -1,5 +1,6 @@
 import React from 'react'
-import { LayoutDashboard, Users, Heart, Share2, ShieldCheck, ArrowUpRight } from 'lucide-react'
+import { LayoutDashboard, Users, Heart, Share2, ShieldCheck, ArrowUpRight, Rocket } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth-context'
 import { useTheme } from '@/components/ThemeProvider'
 import { Plus, Trash2, Database, BarChart3, Shield, Activity, Edit2, RotateCcw } from 'lucide-react'
@@ -140,6 +141,7 @@ const Pagination = ({ total, currentPage, itemsPerPage, onPageChange, isDark }: 
 
 export const AdminDashboard = () => {
     const { user } = useAuth()
+    const navigate = useNavigate()
     const { theme } = useTheme()
     const isDark = theme === 'dark'
     const [activeTab, setActiveTab] = React.useState('overview')
@@ -396,6 +398,13 @@ export const AdminDashboard = () => {
                                     <NavButton id="models" label="Models" icon={Database} />
                                     <NavButton id="analytics" label="Analytics" icon={BarChart3} />
                                     <NavButton id="security" label="Security" icon={Shield} />
+                                    <button
+                                        onClick={() => navigate('/admin/upcoming')}
+                                        className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold transition-all duration-300 ${isDark ? 'text-zinc-500 hover:text-foreground hover:bg-white/5' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100'}`}
+                                    >
+                                        <Rocket className="h-3.5 w-3.5" strokeWidth={2} />
+                                        Upcoming
+                                    </button>
                                 </div>
                             </nav>
                         )}
